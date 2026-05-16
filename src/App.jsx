@@ -1,0 +1,819 @@
+import { useEffect, useMemo, useState } from "react";
+import MovieCard from "./components/MovieCard.jsx";
+import LanguageToggle from "./components/LanguageToggle.jsx";
+import { GENRES } from "./data/genres.js";
+import { STRINGS } from "./data/i18n.js";
+import {
+  fetchMovieDetails,
+  fetchTopMovies,
+  searchMovies,
+  fetchSeriesDetails,
+  fetchTopSeries,
+  searchSeries,
+} from "./services/cinemeta.js";
+import { loadEntries, loadPrefs, saveEntries, savePrefs } from "./services/storage.js";
+import { deriveSimilarGenres, normalizeMovie, sortEntries } from "./utils/movies.js";
+
+const LISTS = ["watched", "watchlist", "favorites", "abandoned"];
+const MAIN_TABS = ["discover", "mylists"];
+
+const LIST_ICONS = {
+  watched: "🎬",
+  watchlist: "📋",
+  favorites: "❤️",
+  abandoned: "⏸️",
+};
+
+const LIST_GRADIENTS = {
+  watched: "from-emerald-500/10 to-teal-500/5 border-emerald-500/20",
+  watchlist: "from-amber-500/10 to-orange-500/5 border-amber-500/20",
+  favorites: "from-rose-500/10 to-pink-500/5 border-rose-500/20",
+  abandoned: "from-slate-500/10 to-zinc-500/5 border-slate-500/20",
+};
+
+function getListLabel(list, strings) {
+  switch (list) {
+    case "watched": return strings.watched;
+    case "watchlist": return strings.watchlist;
+    case "favorites": return strings.favorites;
+    case "abandoned": return strings.abandoned;
+    default: return list;
+  }
+}
+
+export default function App() {
+  const [language, setLanguage] = useState("es");
+  const [orderBy, setOrderBy] = useState("addedAt");
+  const [entries, setEntries] = useState([]);
+  const [topItems, setTopItems] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [genreFilter, setGenreFilter] = useState("");
+  const [yearFilter, setYearFilter] = useState("");
+  const [platformFilter, setPlatformFilter] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [activeMainTab, setActiveMainTab] = useState("discover");
+  const [activeListTab, setActiveListTab] = useState("all");
+  const [listSearchQuery, setListSearchQuery] = useState("");
+  const [contentType, setContentType] = useState("movie");
+  const [detailItem, setDetailItem] = useState(null);
+  const [detailFull, setDetailFull] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailList, setDetailList] = useState("watchlist");
+  const [detailRating, setDetailRating] = useState(0);
+  const [detailWatchedDate, setDetailWatchedDate] = useState("");
+  const [detailReview, setDetailReview] = useState("");
+  const [detailRewatch, setDetailRewatch] = useState(0);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  const strings = STRINGS[language];
+
+  useEffect(() => {
+    const prefs = loadPrefs();
+    setLanguage(prefs.language || "es");
+    setOrderBy(prefs.orderBy || "addedAt");
+    setEntries(loadEntries());
+  }, []);
+
+  useEffect(() => {
+    savePrefs({ orderBy, language });
+  }, [orderBy, language]);
+
+  useEffect(() => {
+    setIsLoading(true);
+    setError("");
+    const fetchFn = contentType === "movie" ? fetchTopMovies : fetchTopSeries;
+    fetchFn({ skip: 0 })
+      .then((data) => setTopItems(data.map(normalizeMovie)))
+      .catch(() => setError("Error cargando recomendaciones"))
+      .finally(() => setIsLoading(false));
+  }, [contentType]);
+
+  useEffect(() => {
+    if (!searchQuery) {
+      setSearchResults([]);
+      return;
+    }
+    const handler = setTimeout(() => {
+      setError("");
+      const searchFn = contentType === "movie" ? searchMovies : searchSeries;
+      searchFn(searchQuery)
+        .then((data) => setSearchResults(data.map(normalizeMovie)))
+        .catch(() => setError("Error en búsqueda"));
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery, contentType]);
+
+  const similarGenres = useMemo(() => deriveSimilarGenres(entries), [entries]);
+
+  const recommendedItems = useMemo(() => {
+    if (!similarGenres.length) return topItems;
+    const prioritized = topItems.filter((item) =>
+      (item.genres || []).some((genre) => similarGenres.includes(genre))
+    );
+    const remainder = topItems.filter(
+      (item) => !prioritized.includes(item)
+    );
+    return [...prioritized, ...remainder];
+  }, [topItems, similarGenres]);
+
+  const filteredResults = useMemo(() => {
+    const items = searchQuery ? searchResults : recommendedItems;
+    return items.filter((item) => {
+      const matchesGenre = genreFilter ? (item.genres || []).includes(genreFilter) : true;
+      const matchesYear = yearFilter ? item.year === yearFilter : true;
+      const matchesPlatform = platformFilter ? (item.platforms || []).includes(platformFilter) : true;
+      return matchesGenre && matchesYear && matchesPlatform;
+    });
+  }, [searchQuery, searchResults, recommendedItems, genreFilter, yearFilter, platformFilter]);
+
+  const entriesByList = useMemo(() => {
+    const grouped = LISTS.reduce((acc, list) => {
+      acc[list] = [];
+      return acc;
+    }, {});
+    entries.forEach((entry) => {
+      if (!grouped[entry.list]) grouped[entry.list] = [];
+      grouped[entry.list].push(entry);
+    });
+    LISTS.forEach((list) => {
+      grouped[list] = sortEntries(grouped[list], orderBy);
+    });
+    return grouped;
+  }, [entries, orderBy]);
+
+  const stats = useMemo(() => {
+    const total = entries.length;
+    const rated = entries.filter((e) => e.rating > 0);
+    const avgRating = rated.length ? (rated.reduce((sum, e) => sum + e.rating, 0) / rated.length).toFixed(1) : "—";
+    const genreCount = {};
+    entries.forEach((e) => {
+      (e.genres || []).forEach((g) => {
+        genreCount[g] = (genreCount[g] || 0) + 1;
+      });
+    });
+    const topGenre = Object.entries(genreCount).sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
+    return { total, avgRating, topGenre };
+  }, [entries]);
+
+  const existingEntry = detailItem
+    ? entries.find((entry) => entry.imdbId === detailItem.imdbId)
+    : null;
+
+  const handleOpenDetail = async (item) => {
+    const normalized = normalizeMovie(item);
+    setDetailItem(normalized);
+    setDetailFull(null);
+    setDetailLoading(true);
+    setSaveSuccess(false);
+    setError("");
+    setActiveMainTab("detail");
+    try {
+      const fetchFn = contentType === "movie" ? fetchMovieDetails : fetchSeriesDetails;
+      const details = await fetchFn(normalized.imdbId);
+      if (details) setDetailFull(normalizeMovie(details));
+    } catch {
+      setError("Error cargando detalle");
+    } finally {
+      setDetailLoading(false);
+    }
+    if (existingEntry) {
+      setDetailList(existingEntry.list);
+      setDetailRating(existingEntry.rating || 0);
+      setDetailWatchedDate(existingEntry.watchedDate || "");
+      setDetailReview(existingEntry.review || "");
+      setDetailRewatch(existingEntry.rewatchCount || 0);
+    } else {
+      setDetailList("watchlist");
+      setDetailRating(0);
+      setDetailWatchedDate("");
+      setDetailReview("");
+      setDetailRewatch(0);
+    }
+  };
+
+  const handleBackToDiscover = () => {
+    setDetailItem(null);
+    setDetailFull(null);
+    setActiveMainTab("discover");
+    setSaveSuccess(false);
+    setError("");
+  };
+
+  const handleSaveEntry = () => {
+    if (!detailItem) return;
+    const base = detailFull || detailItem;
+    const imdbId = base.imdbId;
+    const newEntry = {
+      imdbId,
+      name: base.name,
+      year: base.year,
+      poster: base.poster,
+      genres: base.genres,
+      list: detailList,
+      rating: detailRating,
+      watchedDate: detailWatchedDate,
+      review: detailReview,
+      rewatchCount: detailRewatch,
+      addedAt: new Date().toISOString(),
+      type: contentType,
+    };
+    const updated = entries.filter((entry) => entry.imdbId !== imdbId);
+    updated.push(newEntry);
+    setEntries(updated);
+    saveEntries(updated);
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 3000);
+  };
+
+  const handleRemoveEntry = () => {
+    if (!detailItem) return;
+    const updated = entries.filter((entry) => entry.imdbId !== detailItem.imdbId);
+    setEntries(updated);
+    saveEntries(updated);
+    setDetailList("watchlist");
+    setDetailRating(0);
+    setDetailWatchedDate("");
+    setDetailReview("");
+    setDetailRewatch(0);
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 3000);
+  };
+
+  const availableYears = useMemo(() => {
+    const years = new Set();
+    [...topItems, ...searchResults].forEach((item) => {
+      if (item.year) years.add(item.year);
+    });
+    return Array.from(years).sort((a, b) => b.localeCompare(a));
+  }, [topItems, searchResults]);
+
+  const listsToShow = activeListTab === "all" ? LISTS : [activeListTab];
+  const displayItem = detailFull || detailItem;
+
+  const filteredEntriesByList = useMemo(() => {
+    if (!listSearchQuery.trim()) return entriesByList;
+    const q = listSearchQuery.toLowerCase();
+    const filtered = {};
+    LISTS.forEach((list) => {
+      filtered[list] = entriesByList[list].filter(
+        (entry) => entry.name.toLowerCase().includes(q)
+      );
+    });
+    return filtered;
+  }, [entriesByList, listSearchQuery]);
+
+  return (
+    <div className="min-h-screen bg-[#0a0a0f] text-slate-100">
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950/40 via-transparent to-transparent" />
+
+      <header className="relative border-b border-white/[0.06] bg-[#0a0a0f]/80 px-6 py-5 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-3xl font-bold tracking-tight text-transparent">
+              {strings.appTitle}
+            </h1>
+          </div>
+          <LanguageToggle language={language} onChange={setLanguage} label={strings.language} />
+        </div>
+      </header>
+
+      <div className="relative mx-auto mt-6 flex max-w-7xl justify-center px-6">
+        <nav className="inline-flex gap-1 rounded-2xl bg-white/[0.04] p-1.5 backdrop-blur-sm ring-1 ring-white/[0.08]">
+          {MAIN_TABS.map((tab) => (
+            <button
+              key={tab}
+              onClick={() => {
+                if (tab === "discover") handleBackToDiscover();
+                else setActiveMainTab(tab);
+              }}
+              className={`rounded-xl px-6 py-2.5 text-sm font-medium transition-all duration-200 ${
+                activeMainTab === tab
+                  ? "bg-white/10 text-white shadow-lg shadow-white/5 ring-1 ring-white/10"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              {tab === "discover" ? strings.tabDiscover : strings.tabMyLists}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      <main className="relative mx-auto max-w-7xl px-6 py-8">
+        {activeMainTab === "discover" && (
+          <section className="space-y-8">
+            <div className="flex items-center justify-between">
+              <div className="inline-flex gap-1 rounded-xl bg-white/[0.04] p-1 ring-1 ring-white/[0.08]">
+                {[
+                  { key: "movie", label: strings.typeMovies, icon: "🎬" },
+                  { key: "series", label: strings.typeSeries, icon: "📺" },
+                ].map((opt) => (
+                  <button
+                    key={opt.key}
+                    onClick={() => {
+                      setContentType(opt.key);
+                      setSearchQuery("");
+                      setSearchResults([]);
+                    }}
+                    className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+                      contentType === opt.key
+                        ? "bg-white/10 text-white shadow-sm"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    {opt.icon} {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-white/[0.06] bg-white/[0.02] p-6 backdrop-blur-sm">
+              <div className="flex flex-col gap-4">
+                <div className="relative">
+                  <svg className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <input
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder={strings.searchPlaceholder}
+                    className="w-full rounded-2xl border border-white/[0.08] bg-white/[0.04] px-4 py-3.5 pl-11 text-sm text-slate-100 placeholder:text-slate-500 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  />
+                </div>
+                <div className="grid gap-3 md:grid-cols-3">
+                  <label className="flex flex-col gap-2 text-xs font-medium uppercase tracking-wider text-slate-500">
+                    {strings.genre}
+                    <select
+                      value={genreFilter}
+                      onChange={(event) => setGenreFilter(event.target.value)}
+                      className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-100 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    >
+                      <option value="" className="bg-slate-900">Todos</option>
+                      {GENRES.map((genre) => (
+                        <option key={genre} value={genre} className="bg-slate-900">{genre}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-2 text-xs font-medium uppercase tracking-wider text-slate-500">
+                    {strings.year}
+                    <select
+                      value={yearFilter}
+                      onChange={(event) => setYearFilter(event.target.value)}
+                      className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-100 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    >
+                      <option value="" className="bg-slate-900">Todos</option>
+                      {availableYears.map((year) => (
+                        <option key={year} value={year} className="bg-slate-900">{year}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-2 text-xs font-medium uppercase tracking-wider text-slate-500">
+                    {strings.platform}
+                    <input
+                      value={platformFilter}
+                      onChange={(event) => setPlatformFilter(event.target.value)}
+                      placeholder="Netflix, HBO..."
+                      className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <section className="space-y-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-white">
+                    {searchQuery ? strings.results : strings.recommendations}
+                  </h2>
+                    {similarGenres.length > 0 && !searchQuery && (
+                    <p className="mt-1 text-xs text-slate-500">{strings.similarHint}</p>
+                  )}
+                </div>
+                {isLoading && (
+                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <div className="h-3 w-3 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+                    Cargando...
+                  </div>
+                )}
+              </div>
+
+              {error && (
+                <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-300">
+                  {error}
+                </div>
+              )}
+
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                {filteredResults.slice(0, 8).map((item) => (
+                  <MovieCard key={item.imdbId} item={item} onSelect={handleOpenDetail} actionLabel={strings.details} onAction={handleOpenDetail} />
+                ))}
+              </div>
+            </section>
+          </section>
+        )}
+
+        {activeMainTab === "detail" && displayItem && (
+          <section className="space-y-8">
+            <button
+              onClick={handleBackToDiscover}
+              className="group flex items-center gap-2 text-sm text-slate-400 transition hover:text-white"
+            >
+              <svg className="h-4 w-4 transition-transform group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+              {strings.back}
+            </button>
+
+            <div className="flex flex-col gap-8 md:flex-row">
+              <div className="w-full md:w-80 md:flex-shrink-0">
+                {displayItem.poster ? (
+                  <img
+                    src={displayItem.poster}
+                    alt={displayItem.name}
+                    className="w-full rounded-2xl object-cover shadow-2xl shadow-black/40"
+                  />
+                ) : (
+                  <div className="flex aspect-[2/3] items-center justify-center rounded-2xl bg-white/5 text-slate-500">
+                    Sin poster
+                  </div>
+                )}
+              </div>
+
+              <div className="flex-1 space-y-6">
+                <div>
+                  <h1 className="text-3xl font-bold text-white">{displayItem.name}</h1>
+                  <p className="mt-2 text-sm text-slate-400">{displayItem.year ?? ""}</p>
+                </div>
+
+                {displayItem.description && (
+                  <p className="text-sm leading-relaxed text-slate-300">{displayItem.description}</p>
+                )}
+
+                <div className="flex flex-wrap gap-2">
+                  {(displayItem.genres || []).map((genre) => (
+                    <span key={genre} className="rounded-full bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-400">
+                      {genre}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="grid gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 sm:grid-cols-2">
+                  {displayItem.imdbRating && (
+                    <div className="flex items-center gap-2">
+                      <svg className="h-5 w-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                      <div>
+                        <p className="text-sm font-semibold text-white">{displayItem.imdbRating}/10</p>
+                        <p className="text-xs text-slate-500">{strings.imdbRating}</p>
+                      </div>
+                    </div>
+                  )}
+                  {displayItem.runtime && (
+                    <div>
+                      <p className="text-sm font-semibold text-white">{displayItem.runtime}</p>
+                      <p className="text-xs text-slate-500">{strings.runtime}</p>
+                    </div>
+                  )}
+                  {displayItem.status && (
+                    <div>
+                      <p className="text-sm font-semibold text-white">{displayItem.status}</p>
+                      <p className="text-xs text-slate-500">{strings.status}</p>
+                    </div>
+                  )}
+                  {displayItem.country && (
+                    <div>
+                      <p className="text-sm font-semibold text-white">{displayItem.country}</p>
+                      <p className="text-xs text-slate-500">{strings.country}</p>
+                    </div>
+                  )}
+                </div>
+
+                {detailFull?.videos && detailFull.videos.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-semibold text-slate-300">{strings.episodes}</h3>
+                    <div className="max-h-48 space-y-2 overflow-y-auto rounded-2xl border border-white/[0.06] bg-white/[0.02] p-3">
+                      {detailFull.videos.slice(0, 10).map((ep) => (
+                        <div key={ep.id} className="flex items-center gap-3 rounded-xl bg-white/[0.03] p-2">
+                          {ep.thumbnail ? (
+                            <img src={ep.thumbnail} alt="" className="h-10 w-16 flex-shrink-0 rounded-lg object-cover" />
+                          ) : (
+                            <div className="h-10 w-16 flex-shrink-0 rounded-lg bg-white/5" />
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-xs font-medium text-slate-200">{ep.name}</p>
+                            <p className="text-xs text-slate-500">
+                              {strings.seasonLabel} {ep.season} · {strings.episodeLabel} {ep.episode}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {detailFull.videos.length > 10 && (
+                      <p className="text-xs text-slate-500">...y {detailFull.videos.length - 10} más</p>
+                    )}
+                  </div>
+                )}
+
+                {displayItem.cast && displayItem.cast.length > 0 && (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-slate-300">{strings.cast}</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {displayItem.cast.slice(0, 6).map((person) => (
+                        <span key={person} className="rounded-full bg-white/5 px-3 py-1.5 text-xs text-slate-400">
+                          {person}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-4 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
+                  <h3 className="text-sm font-semibold text-white">
+                    {existingEntry ? `${strings.addedToList} ${getListLabel(existingEntry.list, strings)}` : strings.addToMyList}
+                  </h3>
+
+                  {saveSuccess && (
+                    <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-sm text-emerald-300">
+                      {existingEntry ? "Entrada actualizada" : "Agregado correctamente"}
+                    </div>
+                  )}
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <label className="flex flex-col gap-2">
+                      <span className="text-xs font-medium uppercase tracking-wider text-slate-500">{strings.myLists}</span>
+                      <select
+                        value={detailList}
+                        onChange={(event) => setDetailList(event.target.value)}
+                        className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-100 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      >
+                        <option value="watchlist" className="bg-slate-900">{strings.watchlist}</option>
+                        <option value="watched" className="bg-slate-900">{strings.watched}</option>
+                        <option value="favorites" className="bg-slate-900">{strings.favorites}</option>
+                        <option value="abandoned" className="bg-slate-900">{strings.abandoned}</option>
+                      </select>
+                    </label>
+
+                    <label className="flex flex-col gap-2">
+                      <span className="text-xs font-medium uppercase tracking-wider text-slate-500">{strings.rating} (1-10)</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="10"
+                        value={detailRating}
+                        onChange={(event) => setDetailRating(Number(event.target.value))}
+                        className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-100 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                    </label>
+
+                    <label className="flex flex-col gap-2">
+                      <span className="text-xs font-medium uppercase tracking-wider text-slate-500">{strings.watchedDate}</span>
+                      <input
+                        type="date"
+                        value={detailWatchedDate}
+                        onChange={(event) => setDetailWatchedDate(event.target.value)}
+                        className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-100 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                    </label>
+
+                    <label className="flex flex-col gap-2">
+                      <span className="text-xs font-medium uppercase tracking-wider text-slate-500">{strings.rewatch}</span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={detailRewatch}
+                        onChange={(event) => setDetailRewatch(Number(event.target.value))}
+                        className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-100 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                    </label>
+                  </div>
+
+                  <label className="flex flex-col gap-2">
+                    <span className="text-xs font-medium uppercase tracking-wider text-slate-500">{strings.review}</span>
+                    <textarea
+                      value={detailReview}
+                      onChange={(event) => setDetailReview(event.target.value)}
+                      className="min-h-[80px] rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-100 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    />
+                  </label>
+
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={handleSaveEntry}
+                      className="flex-1 rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition-all hover:bg-indigo-500 hover:shadow-indigo-500/30"
+                    >
+                      {existingEntry ? strings.updateEntry : strings.add}
+                    </button>
+                    {existingEntry && (
+                      <button
+                        type="button"
+                        onClick={handleRemoveEntry}
+                        className="rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm font-semibold text-red-300 transition hover:bg-red-500/10"
+                      >
+                        {strings.removeFromList}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {activeMainTab === "mylists" && (
+          <section className="space-y-6">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => { setActiveListTab("all"); setListSearchQuery(""); }}
+                  className={`rounded-xl px-4 py-2 text-sm font-medium transition-all ${
+                    activeListTab === "all"
+                      ? "bg-white/10 text-white ring-1 ring-white/10"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  Todas
+                </button>
+                {LISTS.map((list) => (
+                  <button
+                    key={list}
+                    onClick={() => { setActiveListTab(list); setListSearchQuery(""); }}
+                    className={`rounded-xl px-4 py-2 text-sm font-medium transition-all ${
+                      activeListTab === list
+                        ? "bg-white/10 text-white ring-1 ring-white/10"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    {LIST_ICONS[list]} {getListLabel(list, strings)}
+                    <span className="ml-1.5 text-xs opacity-60">({entriesByList[list].length})</span>
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                <span>{strings.orderBy}</span>
+                <select
+                  value={orderBy}
+                  onChange={(event) => setOrderBy(event.target.value)}
+                  className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-slate-300 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                >
+                  <option value="addedAt" className="bg-slate-900">{strings.addedAt}</option>
+                  <option value="rating" className="bg-slate-900">{strings.ratingOrder}</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="relative max-w-md">
+              <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                value={listSearchQuery}
+                onChange={(event) => setListSearchQuery(event.target.value)}
+                placeholder={strings.searchInLists}
+                className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 pl-10 text-sm text-slate-100 placeholder:text-slate-500 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              />
+            </div>
+
+            {entries.length > 0 && (
+              <div className="grid gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 md:grid-cols-3">
+                <div className="rounded-xl bg-white/[0.03] p-4 text-center">
+                  <p className="text-2xl font-bold text-white">{stats.total}</p>
+                  <p className="mt-1 text-xs text-slate-500">{strings.statsTotal}</p>
+                </div>
+                <div className="rounded-xl bg-white/[0.03] p-4 text-center">
+                  <p className="text-2xl font-bold text-white">{stats.avgRating}</p>
+                  <p className="mt-1 text-xs text-slate-500">{strings.statsAvgRating}</p>
+                </div>
+                <div className="rounded-xl bg-white/[0.03] p-4 text-center">
+                  <p className="text-2xl font-bold text-white">{stats.topGenre}</p>
+                  <p className="mt-1 text-xs text-slate-500">{strings.statsTopGenre}</p>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-6">
+              {listsToShow.map((list) => (
+                <div
+                  key={list}
+                  className={`overflow-hidden rounded-3xl border bg-gradient-to-br ${LIST_GRADIENTS[list]}`}
+                >
+                  <div className="border-b border-white/[0.06] px-6 py-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl">{LIST_ICONS[list]}</span>
+                        <h3 className="text-lg font-semibold text-slate-100">
+                          {getListLabel(list, strings)}
+                        </h3>
+                        <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-medium text-slate-300">
+                          {entriesByList[list].length}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {filteredEntriesByList[list].length === 0 ? (
+                    <div className="px-6 py-12 text-center">
+                      <p className="text-sm text-slate-500">{listSearchQuery ? "Sin resultados" : strings.listEmpty}</p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-3">
+                      {filteredEntriesByList[list].map((entry) => (
+                        <button
+                          key={entry.imdbId}
+                          onClick={() => {
+                            setContentType(entry.type || "movie");
+                            handleOpenDetail(entry);
+                          }}
+                          className="group flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-3 text-left transition-all hover:border-white/10 hover:bg-white/[0.06]"
+                        >
+                          {entry.poster ? (
+                            <img
+                              src={entry.poster}
+                              alt={entry.name}
+                              className="h-16 w-12 flex-shrink-0 rounded-lg object-cover transition-transform duration-200 group-hover:scale-105"
+                            />
+                          ) : (
+                            <div className="h-16 w-12 flex-shrink-0 rounded-lg bg-white/5" />
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium text-slate-100">{entry.name}</p>
+                            <p className="text-xs text-slate-500">{entry.year}</p>
+                            {entry.rating > 0 && (
+                              <div className="mt-1 flex items-center gap-1">
+                                <svg className="h-3 w-3 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                </svg>
+                                <span className="text-xs font-medium text-amber-400">{entry.rating}/10</span>
+                              </div>
+                            )}
+                          </div>
+                          <svg className="h-4 w-4 flex-shrink-0 text-slate-600 transition-colors group-hover:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+      </main>
+
+      <footer className="relative border-t border-white/[0.06] bg-gradient-to-b from-[#0a0a0f] to-[#06060a] px-6 py-12">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid gap-10 md:grid-cols-4">
+            <div className="md:col-span-2">
+              <h2 className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-2xl font-bold tracking-tight text-transparent">
+                Watch Deck
+              </h2>
+              <p className="mt-3 max-w-sm text-sm leading-relaxed text-slate-500">
+                Tu biblioteca personal de películas y series. Guardá, calificá y organizá todo lo que mirás en un solo lugar.
+              </p>
+              <div className="mt-5 flex gap-3">
+                <a href="#" className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/[0.06] text-slate-400 transition hover:bg-white/10 hover:text-white">
+                  <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.604-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 1.748.653A6.09 6.09 0 0112 5.803c.88.004 1.768.118 2.606.347.908-.922 1.747-.653 1.747-.653.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+                </a>
+                <a href="#" className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/[0.06] text-slate-400 transition hover:bg-white/10 hover:text-white">
+                  <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/></svg>
+                </a>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-300">Listas</h3>
+              <ul className="mt-4 space-y-3">
+                {LISTS.map((list) => (
+                  <li key={list}>
+                    <button
+                      onClick={() => { setActiveMainTab("mylists"); setActiveListTab(list); }}
+                      className="text-sm text-slate-500 transition hover:text-white"
+                    >
+                      {LIST_ICONS[list]} {getListLabel(list, strings)}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-300">Info</h3>
+              <ul className="mt-4 space-y-3">
+                <li><span className="text-sm text-slate-500">Datos por Cinemeta</span></li>
+                <li><span className="text-sm text-slate-500">v0.1.0</span></li>
+                <li><span className="text-sm text-slate-500">{new Date().getFullYear()} Watch Deck</span></li>
+              </ul>
+            </div>
+          </div>
+          <div className="mt-10 border-t border-white/[0.06] pt-8 text-center">
+            <p className="text-xs text-slate-600">
+              Hecho con <span className="text-indigo-400">♥</span> · Todos los derechos reservados
+            </p>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
