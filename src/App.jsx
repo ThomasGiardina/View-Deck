@@ -46,11 +46,11 @@ export default function App() {
   const [orderBy, setOrderBy] = useState("addedAt");
   const [entries, setEntries] = useState([]);
   const [topItems, setTopItems] = useState([]);
+  const [categoryItems, setCategoryItems] = useState({});
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [genreFilter, setGenreFilter] = useState("");
   const [yearFilter, setYearFilter] = useState("");
-  const [platformFilter, setPlatformFilter] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [activeMainTab, setActiveMainTab] = useState("discover");
@@ -88,6 +88,18 @@ export default function App() {
       .then((data) => setTopItems(data.map(normalizeMovie)))
       .catch(() => setError("Error cargando recomendaciones"))
       .finally(() => setIsLoading(false));
+
+    const CATEGORIES = ["Action", "Comedy", "Drama", "Sci-Fi", "Horror", "Thriller", "Romance", "Animation"];
+    CATEGORIES.forEach((genre) => {
+      fetchFn({ skip: 0, genre })
+        .then((data) => {
+          setCategoryItems((prev) => ({
+            ...prev,
+            [genre]: data.map(normalizeMovie).slice(0, 8),
+          }));
+        })
+        .catch(() => {});
+    });
   }, [contentType]);
 
   useEffect(() => {
@@ -123,10 +135,9 @@ export default function App() {
     return items.filter((item) => {
       const matchesGenre = genreFilter ? (item.genres || []).includes(genreFilter) : true;
       const matchesYear = yearFilter ? item.year === yearFilter : true;
-      const matchesPlatform = platformFilter ? (item.platforms || []).includes(platformFilter) : true;
-      return matchesGenre && matchesYear && matchesPlatform;
+      return matchesGenre && matchesYear;
     });
-  }, [searchQuery, searchResults, recommendedItems, genreFilter, yearFilter, platformFilter]);
+  }, [searchQuery, searchResults, recommendedItems, genreFilter, yearFilter]);
 
   const entriesByList = useMemo(() => {
     const grouped = LISTS.reduce((acc, list) => {
@@ -341,7 +352,7 @@ export default function App() {
                     className="w-full rounded-2xl border border-white/[0.08] bg-white/[0.04] px-4 py-3.5 pl-11 text-sm text-slate-100 placeholder:text-slate-500 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                   />
                 </div>
-                <div className="grid gap-3 md:grid-cols-3">
+                <div className="grid gap-3 md:grid-cols-2">
                   <label className="flex flex-col gap-2 text-xs font-medium uppercase tracking-wider text-slate-500">
                     {strings.genre}
                     <select
@@ -367,15 +378,6 @@ export default function App() {
                         <option key={year} value={year} className="bg-slate-900">{year}</option>
                       ))}
                     </select>
-                  </label>
-                  <label className="flex flex-col gap-2 text-xs font-medium uppercase tracking-wider text-slate-500">
-                    {strings.platform}
-                    <input
-                      value={platformFilter}
-                      onChange={(event) => setPlatformFilter(event.target.value)}
-                      placeholder="Netflix, HBO..."
-                      className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                    />
                   </label>
                 </div>
               </div>
@@ -411,6 +413,40 @@ export default function App() {
                 ))}
               </div>
             </section>
+
+            {!searchQuery && (
+              <div className="space-y-10">
+                {["Action", "Comedy", "Drama", "Sci-Fi", "Horror", "Thriller", "Romance", "Animation"].map((category) => (
+                  <section key={category} className="space-y-4">
+                    <h2 className="text-lg font-semibold text-white">{category}</h2>
+                    <div className="flex gap-4 overflow-x-auto pb-2">
+                      {(categoryItems[category] || []).map((item) => (
+                        <div
+                          key={item.imdbId}
+                          className="w-36 flex-shrink-0 cursor-pointer transition hover:scale-105"
+                          onClick={() => handleOpenDetail(item)}
+                        >
+                          {item.poster ? (
+                            <img
+                              src={item.poster}
+                              alt={item.name}
+                              className="aspect-[2/3] w-full rounded-xl object-cover shadow-lg shadow-black/30"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="flex aspect-[2/3] items-center justify-center rounded-xl bg-white/5 text-xs text-slate-500">
+                              {item.name}
+                            </div>
+                          )}
+                          <p className="mt-2 line-clamp-1 text-xs text-slate-400">{item.name}</p>
+                          {item.year && <p className="text-[10px] text-slate-600">{item.year}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            )}
           </section>
         )}
 
@@ -806,11 +842,6 @@ export default function App() {
                 <li><span className="text-sm text-slate-500">{new Date().getFullYear()} Watch Deck</span></li>
               </ul>
             </div>
-          </div>
-          <div className="mt-10 border-t border-white/[0.06] pt-8 text-center">
-            <p className="text-xs text-slate-600">
-              Hecho con <span className="text-indigo-400">♥</span> · Todos los derechos reservados
-            </p>
           </div>
         </div>
       </footer>
