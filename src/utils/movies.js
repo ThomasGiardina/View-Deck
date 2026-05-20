@@ -1,4 +1,14 @@
 export function normalizeMovie(movie) {
+  const videos = movie.videos || [];
+  const episodesBySeason = {};
+  videos.forEach((v) => {
+    if (v.season) {
+      if (!episodesBySeason[v.season]) episodesBySeason[v.season] = 0;
+      episodesBySeason[v.season]++;
+    }
+  });
+  const totalSeasons = Object.keys(episodesBySeason).length;
+  const totalEpisodes = videos.length;
   return {
     imdbId: movie.imdb_id || movie.id,
     name: movie.name,
@@ -13,7 +23,10 @@ export function normalizeMovie(movie) {
     country: movie.country,
     runtime: movie.runtime,
     status: movie.status,
-    videos: movie.videos || [],
+    videos,
+    totalEpisodes,
+    totalSeasons,
+    episodesBySeason,
   };
 }
 

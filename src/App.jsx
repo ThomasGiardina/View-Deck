@@ -13,14 +13,16 @@ import {
   searchSeries,
 } from "./services/cinemeta.js";
 import { loadEntries, loadPrefs, saveEntries, savePrefs } from "./services/storage.js";
+import { fetchSeriesEpisodes } from "./services/tvmaze.js";
 import { deriveSimilarGenres, normalizeMovie, sortEntries } from "./utils/movies.js";
 
-const LISTS = ["watched", "watchlist", "favorites", "abandoned"];
+const LISTS = ["watched", "watchlist", "inprogress", "favorites", "abandoned"];
 const MAIN_TABS = ["discover", "mylists"];
 
 const LIST_ICONS = {
   watched: "🎬",
   watchlist: "📋",
+  inprogress: "▶️",
   favorites: "❤️",
   abandoned: "⏸️",
 };
@@ -28,6 +30,7 @@ const LIST_ICONS = {
 const LIST_GRADIENTS = {
   watched: "from-emerald-500/10 to-teal-500/5 border-emerald-500/20",
   watchlist: "from-amber-500/10 to-orange-500/5 border-amber-500/20",
+  inprogress: "from-blue-500/10 to-indigo-500/5 border-blue-500/20",
   favorites: "from-rose-500/10 to-pink-500/5 border-rose-500/20",
   abandoned: "from-slate-500/10 to-zinc-500/5 border-slate-500/20",
 };
@@ -40,6 +43,14 @@ function getListLabel(list, strings) {
     case "abandoned": return strings.abandoned;
     default: return list;
   }
+}
+
+function formatStatus(status, strings) {
+  if (!status) return "";
+  const lower = status.toLowerCase();
+  if (lower === "ended" || lower === "canceled") return strings.statusEnded;
+  if (lower === "returning series" || lower === "running" || lower === "in production") return strings.statusReturning;
+  return status;
 }
 
 export default function App() {
@@ -66,6 +77,9 @@ export default function App() {
   const [detailWatchedDate, setDetailWatchedDate] = useState("");
   const [detailReview, setDetailReview] = useState("");
   const [detailRewatch, setDetailRewatch] = useState(0);
+  const [detailCurrentSeason, setDetailCurrentSeason] = useState("");
+  const [detailCurrentEpisode, setDetailCurrentEpisode] = useState("");
+  const [detailEpisodes, setDetailEpisodes] = useState(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   const strings = STRINGS[language];
@@ -175,8 +189,10 @@ export default function App() {
 
   const handleOpenDetail = async (item) => {
     const normalized = normalizeMovie(item);
+    const foundEntry = entries.find((entry) => entry.imdbId === normalized.imdbId) || null;
     setDetailItem(normalized);
     setDetailFull(null);
+    setDetailEpisodes(null);
     setDetailLoading(true);
     setSaveSuccess(false);
     setError("");
@@ -190,24 +206,35 @@ export default function App() {
     } finally {
       setDetailLoading(false);
     }
-    if (existingEntry) {
-      setDetailList(existingEntry.list);
-      setDetailRating(existingEntry.rating || 0);
-      setDetailWatchedDate(existingEntry.watchedDate || "");
-      setDetailReview(existingEntry.review || "");
-      setDetailRewatch(existingEntry.rewatchCount || 0);
+    if (contentType === "series") {
+      try {
+        const episodes = await fetchSeriesEpisodes(normalized.imdbId, normalized.name);
+        if (episodes) setDetailEpisodes(episodes);
+      } catch {}
+    }
+    if (foundEntry) {
+      setDetailList(foundEntry.list);
+      setDetailRating(foundEntry.rating || 0);
+      setDetailWatchedDate(foundEntry.watchedDate || "");
+      setDetailReview(foundEntry.review || "");
+      setDetailRewatch(foundEntry.rewatchCount || 0);
+      setDetailCurrentSeason(foundEntry.currentSeason || "");
+      setDetailCurrentEpisode(foundEntry.currentEpisode || "");
     } else {
       setDetailList("watchlist");
       setDetailRating(0);
       setDetailWatchedDate("");
       setDetailReview("");
       setDetailRewatch(0);
+      setDetailCurrentSeason("");
+      setDetailCurrentEpisode("");
     }
   };
 
   const handleBackToDiscover = () => {
     setDetailItem(null);
     setDetailFull(null);
+    setDetailEpisodes(null);
     setActiveMainTab("discover");
     setSaveSuccess(false);
     setError("");
@@ -228,6 +255,8 @@ export default function App() {
       watchedDate: detailWatchedDate,
       review: detailReview,
       rewatchCount: detailRewatch,
+      currentSeason: detailCurrentSeason,
+      currentEpisode: detailCurrentEpisode,
       addedAt: new Date().toISOString(),
       type: contentType,
     };
@@ -249,6 +278,9 @@ export default function App() {
     setDetailWatchedDate("");
     setDetailReview("");
     setDetailRewatch(0);
+    setDetailCurrentSeason("");
+    setDetailCurrentEpisode("");
+    setDetailEpisodes(null);
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 3000);
   };
@@ -316,31 +348,6 @@ export default function App() {
       <main className="relative mx-auto max-w-7xl px-6 py-8">
         {activeMainTab === "discover" && (
           <section className="space-y-8">
-            <div className="flex items-center justify-between">
-              <div className="inline-flex gap-1 rounded-xl bg-white/[0.04] p-1 ring-1 ring-white/[0.08]">
-                {[
-                  { key: "movie", label: strings.typeMovies, icon: "🎬" },
-                  { key: "series", label: strings.typeSeries, icon: "📺" },
-                ].map((opt) => (
-                  <button
-                    key={opt.key}
-                    onClick={() => {
-                      setContentType(opt.key);
-                      setSearchQuery("");
-                      setSearchResults([]);
-                    }}
-                    className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
-                      contentType === opt.key
-                        ? "bg-white/10 text-white shadow-sm"
-                        : "text-slate-400 hover:text-slate-200"
-                    }`}
-                  >
-                    {opt.icon} {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             <div className="rounded-3xl border border-white/[0.06] bg-white/[0.02] p-6 backdrop-blur-sm">
               <div className="flex flex-col gap-4">
                 <div className="relative">
@@ -354,7 +361,7 @@ export default function App() {
                     className="w-full rounded-2xl border border-white/[0.08] bg-white/[0.04] px-4 py-3.5 pl-11 text-sm text-slate-100 placeholder:text-slate-500 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                   />
                 </div>
-                <div className="grid gap-3 md:grid-cols-2">
+                <div className="grid gap-3 md:grid-cols-3">
                   <label className="flex flex-col gap-2 text-xs font-medium uppercase tracking-wider text-slate-500">
                     {strings.genre}
                     <select
@@ -379,6 +386,21 @@ export default function App() {
                       {availableYears.map((year) => (
                         <option key={year} value={year} className="bg-slate-900">{year}</option>
                       ))}
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-2 text-xs font-medium uppercase tracking-wider text-slate-500">
+                    {strings.type}
+                    <select
+                      value={contentType}
+                      onChange={(event) => {
+                        setContentType(event.target.value);
+                        setSearchQuery("");
+                        setSearchResults([]);
+                      }}
+                      className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-100 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    >
+                      <option value="movie" className="bg-slate-900">{strings.typeMovies}</option>
+                      <option value="series" className="bg-slate-900">{strings.typeSeries}</option>
                     </select>
                   </label>
                 </div>
@@ -496,7 +518,7 @@ export default function App() {
                   )}
                   {displayItem.status && (
                     <div>
-                      <p className="text-sm font-semibold text-white">{displayItem.status}</p>
+                      <p className="text-sm font-semibold text-white">{formatStatus(displayItem.status, strings)}</p>
                       <p className="text-xs text-slate-500">{strings.status}</p>
                     </div>
                   )}
@@ -508,29 +530,19 @@ export default function App() {
                   )}
                 </div>
 
-                {detailFull?.videos && detailFull.videos.length > 0 && (
+                {(detailEpisodes?.totalSeasons > 0 || displayItem.totalSeasons > 0) && (
                   <div className="space-y-3">
                     <h3 className="text-sm font-semibold text-slate-300">{strings.episodes}</h3>
-                    <div className="max-h-48 space-y-2 overflow-y-auto rounded-2xl border border-white/[0.06] bg-white/[0.02] p-3">
-                      {detailFull.videos.slice(0, 10).map((ep) => (
-                        <div key={ep.id} className="flex items-center gap-3 rounded-xl bg-white/[0.03] p-2">
-                          {ep.thumbnail ? (
-                            <img src={ep.thumbnail} alt="" className="h-10 w-16 flex-shrink-0 rounded-lg object-cover" />
-                          ) : (
-                            <div className="h-10 w-16 flex-shrink-0 rounded-lg bg-white/5" />
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-xs font-medium text-slate-200">{ep.name}</p>
-                            <p className="text-xs text-slate-500">
-                              {strings.seasonLabel} {ep.season} · {strings.episodeLabel} {ep.episode}
-                            </p>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {Object.entries(detailEpisodes?.episodesBySeason || displayItem.episodesBySeason)
+                        .sort((a, b) => Number(a[0]) - Number(b[0]))
+                        .map(([season, count]) => (
+                          <div key={season} className="flex items-center justify-between rounded-xl bg-white/[0.03] px-4 py-2.5">
+                            <span className="text-sm font-medium text-slate-300">{strings.seasonLabel} {season}</span>
+                            <span className="text-sm font-semibold text-white">{count} {strings.episodes}</span>
                           </div>
-                        </div>
-                      ))}
+                        ))}
                     </div>
-                    {detailFull.videos.length > 10 && (
-                      <p className="text-xs text-slate-500">...y {detailFull.videos.length - 10} más</p>
-                    )}
                   </div>
                 )}
 
@@ -549,7 +561,7 @@ export default function App() {
 
                 <div className="space-y-4 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
                   <h3 className="text-sm font-semibold text-white">
-                    {existingEntry ? `${strings.addedToList} ${getListLabel(existingEntry.list, strings)}` : strings.addToMyList}
+                    {existingEntry ? `${strings.addedToList} ${getListLabel(existingEntry.list, strings)}` : "Agregar a Mi Lista"}
                   </h3>
 
                   {saveSuccess && (
@@ -560,14 +572,21 @@ export default function App() {
 
                   <div className="grid gap-4 sm:grid-cols-2">
                     <label className="flex flex-col gap-2">
-                      <span className="text-xs font-medium uppercase tracking-wider text-slate-500">{strings.myLists}</span>
+                      <span className="text-xs font-medium uppercase tracking-wider text-slate-500">{strings.viewType}</span>
                       <select
                         value={detailList}
-                        onChange={(event) => setDetailList(event.target.value)}
+                        onChange={(event) => {
+                          setDetailList(event.target.value);
+                          if (event.target.value === "watched") {
+                            setDetailCurrentSeason("");
+                            setDetailCurrentEpisode("");
+                          }
+                        }}
                         className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-100 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                       >
                         <option value="watchlist" className="bg-slate-900">{strings.watchlist}</option>
-                        <option value="watched" className="bg-slate-900">{strings.watched}</option>
+                        <option value="watched" className="bg-slate-900">{strings.watchComplete}</option>
+                        <option value="inprogress" className="bg-slate-900">{strings.inprogress}</option>
                         <option value="favorites" className="bg-slate-900">{strings.favorites}</option>
                         <option value="abandoned" className="bg-slate-900">{strings.abandoned}</option>
                       </select>
@@ -576,12 +595,18 @@ export default function App() {
                     <label className="flex flex-col gap-2">
                       <span className="text-xs font-medium uppercase tracking-wider text-slate-500">{strings.rating} (1-10)</span>
                       <input
-                        type="number"
-                        min="1"
-                        max="10"
-                        value={detailRating}
-                        onChange={(event) => setDetailRating(Number(event.target.value))}
-                        className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-100 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        type="text"
+                        inputMode="numeric"
+                        value={detailRating || ""}
+                        onChange={(event) => {
+                          const val = event.target.value.replace(/[^0-9]/g, "");
+                          const num = Number(val);
+                          if (val === "" || (num >= 1 && num <= 10)) {
+                            setDetailRating(val === "" ? 0 : num);
+                          }
+                        }}
+                        placeholder="—"
+                        className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                       />
                     </label>
 
@@ -605,6 +630,50 @@ export default function App() {
                         className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-100 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                       />
                     </label>
+
+                    {contentType === "series" && (detailEpisodes?.totalSeasons > 0 || displayItem.totalSeasons > 0) && (
+                      <>
+                        <label className="flex flex-col gap-2">
+                          <span className="text-xs font-medium uppercase tracking-wider text-slate-500">{strings.currentSeason}</span>
+                          <select
+                            value={detailCurrentSeason}
+                            onChange={(event) => {
+                              setDetailCurrentSeason(event.target.value);
+                              setDetailCurrentEpisode("");
+                            }}
+                            disabled={detailList === "watched"}
+                            className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-100 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <option value="" className="bg-slate-900">Seleccionar</option>
+                            {Object.keys(detailEpisodes?.episodesBySeason || displayItem.episodesBySeason)
+                              .sort((a, b) => Number(a) - Number(b))
+                              .map((season) => (
+                                <option key={season} value={season} className="bg-slate-900">
+                                  {strings.seasonLabel} {season} ({(detailEpisodes?.episodesBySeason || displayItem.episodesBySeason)[season]} {strings.episodes})
+                                </option>
+                              ))}
+                          </select>
+                        </label>
+
+                        <label className="flex flex-col gap-2">
+                          <span className="text-xs font-medium uppercase tracking-wider text-slate-500">{strings.currentEpisode}</span>
+                          <select
+                            value={detailCurrentEpisode}
+                            onChange={(event) => setDetailCurrentEpisode(event.target.value)}
+                            disabled={!detailCurrentSeason || detailList === "watched"}
+                            className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-100 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <option value="" className="bg-slate-900">Seleccionar</option>
+                            {detailCurrentSeason &&
+                              Array.from({ length: (detailEpisodes?.episodesBySeason || displayItem.episodesBySeason)[detailCurrentSeason] || 0 }, (_, i) => i + 1).map((ep) => (
+                                <option key={ep} value={ep} className="bg-slate-900">
+                                  {strings.episodeLabel} {ep}
+                                </option>
+                              ))}
+                          </select>
+                        </label>
+                      </>
+                    )}
                   </div>
 
                   <label className="flex flex-col gap-2">
@@ -758,6 +827,13 @@ export default function App() {
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-medium text-slate-100">{entry.name}</p>
                             <p className="text-xs text-slate-500">{entry.year}</p>
+                            {entry.currentSeason && entry.currentEpisode && (
+                              <div className="mt-1 flex items-center gap-1">
+                                <span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-xs font-medium text-blue-300">
+                                  S{entry.currentSeason}E{entry.currentEpisode}
+                                </span>
+                              </div>
+                            )}
                             {entry.rating > 0 && (
                               <div className="mt-1 flex items-center gap-1">
                                 <svg className="h-3 w-3 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
