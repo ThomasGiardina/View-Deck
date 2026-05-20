@@ -14,6 +14,8 @@ export function normalizeMovie(movie) {
     name: movie.name,
     year: movie.releaseInfo || movie.year,
     poster: movie.poster,
+    background: movie.background,
+    logo: movie.logo,
     genres: movie.genres || movie.genre || [],
     description: movie.description,
     imdbRating: movie.imdbRating,

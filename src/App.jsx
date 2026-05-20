@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import MovieCard from "./components/MovieCard.jsx";
 import GenreCarousel from "./components/GenreCarousel.jsx";
+import FeaturedCarousel from "./components/FeaturedCarousel.jsx";
 import LanguageToggle from "./components/LanguageToggle.jsx";
 import { GENRES } from "./data/genres.js";
 import { STRINGS } from "./data/i18n.js";
@@ -134,16 +135,21 @@ export default function App() {
 
   const similarGenres = useMemo(() => deriveSimilarGenres(entries), [entries]);
 
+  const shuffledItems = useMemo(() => {
+    const shuffled = [...topItems].sort(() => Math.random() - 0.5);
+    return shuffled;
+  }, [topItems]);
+
   const recommendedItems = useMemo(() => {
-    if (!similarGenres.length) return topItems;
-    const prioritized = topItems.filter((item) =>
+    if (!similarGenres.length) return shuffledItems;
+    const prioritized = shuffledItems.filter((item) =>
       (item.genres || []).some((genre) => similarGenres.includes(genre))
     );
-    const remainder = topItems.filter(
+    const remainder = shuffledItems.filter(
       (item) => !prioritized.includes(item)
     );
     return [...prioritized, ...remainder];
-  }, [topItems, similarGenres]);
+  }, [shuffledItems, similarGenres]);
 
   const filteredResults = useMemo(() => {
     const items = searchQuery ? searchResults : recommendedItems;
@@ -411,36 +417,50 @@ export default function App() {
               </div>
             </div>
 
-            <section className="space-y-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-semibold text-white">
-                    {searchQuery ? strings.results : strings.recommendations}
-                  </h2>
-                    {similarGenres.length > 0 && !searchQuery && (
-                    <p className="mt-1 text-xs text-slate-500">{strings.similarHint}</p>
+            {!searchQuery && (
+              <FeaturedCarousel items={recommendedItems} onSelect={handleOpenDetail} />
+            )}
+
+            {searchQuery && (
+              <section className="space-y-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl font-semibold text-white">{strings.results}</h2>
+                  </div>
+                  {isLoading && (
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                      <div className="h-3 w-3 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+                      Cargando...
+                    </div>
                   )}
                 </div>
-                {isLoading && (
-                  <div className="flex items-center gap-2 text-xs text-slate-500">
-                    <div className="h-3 w-3 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
-                    Cargando...
+
+                {error && (
+                  <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-300">
+                    {error}
                   </div>
                 )}
-              </div>
 
-              {error && (
-                <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-300">
-                  {error}
+                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                  {filteredResults.slice(0, 8).map((item) => (
+                    <MovieCard key={item.imdbId} item={item} onSelect={handleOpenDetail} actionLabel={strings.details} onAction={handleOpenDetail} />
+                  ))}
                 </div>
-              )}
+              </section>
+            )}
 
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                {filteredResults.slice(0, 8).map((item) => (
-                  <MovieCard key={item.imdbId} item={item} onSelect={handleOpenDetail} actionLabel={strings.details} onAction={handleOpenDetail} />
-                ))}
-              </div>
-            </section>
+            {!searchQuery && (
+              <section className="space-y-5">
+                <div>
+                  <h2 className="text-xl font-semibold text-white">{strings.latestReleases}</h2>
+                </div>
+                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                  {topItems.slice(0, 8).map((item) => (
+                    <MovieCard key={item.imdbId} item={item} onSelect={handleOpenDetail} actionLabel={strings.details} onAction={handleOpenDetail} />
+                  ))}
+                </div>
+              </section>
+            )}
 
             {!searchQuery && (
               <div className="space-y-10">
