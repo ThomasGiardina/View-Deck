@@ -190,6 +190,7 @@ export default function App() {
   const handleOpenDetail = async (item) => {
     const normalized = normalizeMovie(item);
     const foundEntry = entries.find((entry) => entry.imdbId === normalized.imdbId) || null;
+
     setDetailItem(normalized);
     setDetailFull(null);
     setDetailEpisodes(null);
@@ -197,21 +198,7 @@ export default function App() {
     setSaveSuccess(false);
     setError("");
     setActiveMainTab("detail");
-    try {
-      const fetchFn = contentType === "movie" ? fetchMovieDetails : fetchSeriesDetails;
-      const details = await fetchFn(normalized.imdbId);
-      if (details) setDetailFull(normalizeMovie(details));
-    } catch {
-      setError("Error cargando detalle");
-    } finally {
-      setDetailLoading(false);
-    }
-    if (contentType === "series") {
-      try {
-        const episodes = await fetchSeriesEpisodes(normalized.imdbId, normalized.name);
-        if (episodes) setDetailEpisodes(episodes);
-      } catch {}
-    }
+
     if (foundEntry) {
       setDetailList(foundEntry.list);
       setDetailRating(foundEntry.rating || 0);
@@ -228,6 +215,23 @@ export default function App() {
       setDetailRewatch(0);
       setDetailCurrentSeason("");
       setDetailCurrentEpisode("");
+    }
+
+    try {
+      const fetchFn = contentType === "movie" ? fetchMovieDetails : fetchSeriesDetails;
+      const details = await fetchFn(normalized.imdbId);
+      if (details) setDetailFull(normalizeMovie(details));
+    } catch {
+      setError("Error cargando detalle");
+    } finally {
+      setDetailLoading(false);
+    }
+
+    if (contentType === "series") {
+      try {
+        const episodes = await fetchSeriesEpisodes(normalized.imdbId, normalized.name);
+        if (episodes) setDetailEpisodes(episodes);
+      } catch {}
     }
   };
 

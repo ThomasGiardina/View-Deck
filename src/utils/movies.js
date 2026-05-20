@@ -10,7 +10,7 @@ export function normalizeMovie(movie) {
   const totalSeasons = Object.keys(episodesBySeason).length;
   const totalEpisodes = videos.length;
   return {
-    imdbId: movie.imdb_id || movie.id,
+    imdbId: movie.imdbId || movie.imdb_id || movie.id,
     name: movie.name,
     year: movie.releaseInfo || movie.year,
     poster: movie.poster,
