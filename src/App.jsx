@@ -585,6 +585,14 @@ export default function App() {
                             setDetailCurrentSeason("");
                             setDetailCurrentEpisode("");
                           }
+                          if (event.target.value === "watchlist") {
+                            setDetailRating(0);
+                            setDetailWatchedDate("");
+                            setDetailReview("");
+                            setDetailRewatch(0);
+                            setDetailCurrentSeason("");
+                            setDetailCurrentEpisode("");
+                          }
                         }}
                         className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-100 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                       >
@@ -610,7 +618,8 @@ export default function App() {
                           }
                         }}
                         placeholder="—"
-                        className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        disabled={detailList === "watchlist"}
+                        className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                     </label>
 
@@ -620,7 +629,8 @@ export default function App() {
                         type="date"
                         value={detailWatchedDate}
                         onChange={(event) => setDetailWatchedDate(event.target.value)}
-                        className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-100 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        disabled={detailList === "watchlist"}
+                        className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-100 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                     </label>
 
@@ -631,7 +641,8 @@ export default function App() {
                         min="0"
                         value={detailRewatch}
                         onChange={(event) => setDetailRewatch(Number(event.target.value))}
-                        className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-100 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        disabled={detailList === "watchlist"}
+                        className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-100 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                     </label>
 
@@ -645,7 +656,7 @@ export default function App() {
                               setDetailCurrentSeason(event.target.value);
                               setDetailCurrentEpisode("");
                             }}
-                            disabled={detailList === "watched"}
+                            disabled={detailList === "watched" || detailList === "watchlist"}
                             className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-100 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <option value="" className="bg-slate-900">Seleccionar</option>
@@ -664,7 +675,7 @@ export default function App() {
                           <select
                             value={detailCurrentEpisode}
                             onChange={(event) => setDetailCurrentEpisode(event.target.value)}
-                            disabled={!detailCurrentSeason || detailList === "watched"}
+                            disabled={!detailCurrentSeason || detailList === "watched" || detailList === "watchlist"}
                             className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-100 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <option value="" className="bg-slate-900">Seleccionar</option>
@@ -685,7 +696,8 @@ export default function App() {
                     <textarea
                       value={detailReview}
                       onChange={(event) => setDetailReview(event.target.value)}
-                      className="min-h-[80px] rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-100 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      disabled={detailList === "watchlist"}
+                      className="min-h-[80px] rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-100 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                   </label>
 
