@@ -53,7 +53,7 @@ export default function GenreCarousel({ title, items, onSelect }) {
       </div>
       <style>{`
         .carousel-track {
-          animation: carousel-scroll 80s linear infinite;
+          animation: carousel-scroll 120s linear infinite;
           width: max-content;
         }
         .carousel-track:hover {
