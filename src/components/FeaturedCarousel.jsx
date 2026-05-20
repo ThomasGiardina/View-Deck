@@ -78,7 +78,7 @@ export default function FeaturedCarousel({ items, onSelect }) {
             </div>
           </div>
 
-          <div className="flex w-full flex-col gap-1 p-3 md:w-80 md:border-l md:border-white/[0.06]">
+          <div className="flex w-full flex-col justify-between gap-2 p-4 md:w-80 md:border-l md:border-white/[0.06]">
             {visibleItems.map((item, index) => (
               <button
                 key={item.imdbId}
