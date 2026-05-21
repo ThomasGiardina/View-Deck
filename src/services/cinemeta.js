@@ -18,6 +18,15 @@ async function searchCatalog(type, query) {
   return data.metas ?? [];
 }
 
+async function searchByYear(type, year) {
+  if (!year) return [];
+  const url = `${BASE_URL}/catalog/${type}/top/year=${encodeURIComponent(year)}.json`;
+  const response = await fetch(url);
+  if (!response.ok) return [];
+  const data = await response.json();
+  return data.metas ?? [];
+}
+
 async function fetchMetaDetails(type, imdbId) {
   const url = `${BASE_URL}/meta/${type}/${imdbId}.json`;
   const response = await fetch(url);
@@ -28,8 +37,10 @@ async function fetchMetaDetails(type, imdbId) {
 
 export async function fetchTopMovies(opts) { return fetchCatalog("movie", opts); }
 export async function searchMovies(query) { return searchCatalog("movie", query); }
+export async function searchMoviesByYear(year) { return searchByYear("movie", year); }
 export async function fetchMovieDetails(imdbId) { return fetchMetaDetails("movie", imdbId); }
 
 export async function fetchTopSeries(opts) { return fetchCatalog("series", opts); }
 export async function searchSeries(query) { return searchCatalog("series", query); }
+export async function searchSeriesByYear(year) { return searchByYear("series", year); }
 export async function fetchSeriesDetails(imdbId) { return fetchMetaDetails("series", imdbId); }
