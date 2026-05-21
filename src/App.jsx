@@ -64,6 +64,7 @@ export default function App() {
   const [searchResults, setSearchResults] = useState([]);
   const [genreFilter, setGenreFilter] = useState("");
   const [yearFilter, setYearFilter] = useState("");
+  const [genrePage, setGenrePage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [activeMainTab, setActiveMainTab] = useState("discover");
@@ -119,6 +120,30 @@ export default function App() {
   }, [contentType]);
 
   useEffect(() => {
+    setGenrePage(1);
+  }, [genreFilter]);
+
+  useEffect(() => {
+    if (!genreFilter) return;
+    setIsLoading(true);
+    const fetchFn = contentType === "movie" ? fetchTopMovies : fetchTopSeries;
+    Promise.all([
+      fetchFn({ skip: 0, genre: genreFilter }),
+      fetchFn({ skip: 20, genre: genreFilter }),
+      fetchFn({ skip: 40, genre: genreFilter }),
+    ])
+      .then(([page1, page2, page3]) => {
+        const all = [...page1, ...page2, ...page3].map(normalizeMovie);
+        setCategoryItems((prev) => ({
+          ...prev,
+          [genreFilter]: all,
+        }));
+      })
+      .catch(() => {})
+      .finally(() => setIsLoading(false));
+  }, [genreFilter, contentType]);
+
+  useEffect(() => {
     if (!searchQuery) {
       setSearchResults([]);
       return;
@@ -135,12 +160,16 @@ export default function App() {
 
   const similarGenres = useMemo(() => deriveSimilarGenres(entries), [entries]);
 
+  const genreItems = genreFilter ? (categoryItems[genreFilter] || []) : [];
+
   const shuffledItems = useMemo(() => {
-    const shuffled = [...topItems].sort(() => Math.random() - 0.5);
+    const base = genreFilter ? genreItems : topItems;
+    const shuffled = [...base].sort(() => Math.random() - 0.5);
     return shuffled;
-  }, [topItems]);
+  }, [topItems, genreItems, genreFilter]);
 
   const recommendedItems = useMemo(() => {
+    if (genreFilter) return shuffledItems;
     if (!similarGenres.length) return shuffledItems;
     const prioritized = shuffledItems.filter((item) =>
       (item.genres || []).some((genre) => similarGenres.includes(genre))
@@ -149,15 +178,19 @@ export default function App() {
       (item) => !prioritized.includes(item)
     );
     return [...prioritized, ...remainder];
-  }, [shuffledItems, similarGenres]);
+  }, [shuffledItems, similarGenres, genreFilter]);
 
-  const filteredResults = useMemo(() => {
-    const items = searchQuery ? searchResults : recommendedItems;
+  const filterItems = (items) => {
     return items.filter((item) => {
       const matchesGenre = genreFilter ? (item.genres || []).includes(genreFilter) : true;
       const matchesYear = yearFilter ? item.year === yearFilter : true;
       return matchesGenre && matchesYear;
     });
+  };
+
+  const filteredResults = useMemo(() => {
+    const items = searchQuery ? searchResults : recommendedItems;
+    return filterItems(items);
   }, [searchQuery, searchResults, recommendedItems, genreFilter, yearFilter]);
 
   const entriesByList = useMemo(() => {
@@ -462,7 +495,95 @@ export default function App() {
               </section>
             )}
 
-            {!searchQuery && (
+            {!searchQuery && genreFilter && (
+              <section className="space-y-5">
+                <div>
+                  <h2 className="text-xl font-semibold text-white">{genreFilter}</h2>
+                </div>
+                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                  {genreItems
+                    .slice((genrePage - 1) * 12, genrePage * 12)
+                    .map((item) => (
+                      <MovieCard key={item.imdbId} item={item} onSelect={handleOpenDetail} actionLabel={strings.details} onAction={handleOpenDetail} />
+                    ))}
+                </div>
+                <div className="flex justify-center items-center gap-2">
+                  <button
+                    onClick={() => setGenrePage(1)}
+                    disabled={genrePage === 1}
+                    className="rounded-lg bg-white/10 px-3 py-1.5 text-sm text-slate-300 transition hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => setGenrePage((p) => Math.max(1, p - 1))}
+                    disabled={genrePage === 1}
+                    className="rounded-lg bg-white/10 px-3 py-1.5 text-sm text-slate-300 transition hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  {genrePage > 2 && (
+                    <button
+                      onClick={() => setGenrePage(genrePage - 2)}
+                      className="rounded-lg px-3 py-1.5 text-sm text-slate-400 transition hover:bg-white/10 hover:text-white"
+                    >
+                      {genrePage - 2}
+                    </button>
+                  )}
+                  {genrePage > 1 && (
+                    <button
+                      onClick={() => setGenrePage(genrePage - 1)}
+                      className="rounded-lg px-3 py-1.5 text-sm text-slate-400 transition hover:bg-white/10 hover:text-white"
+                    >
+                      {genrePage - 1}
+                    </button>
+                  )}
+                  <span className="rounded-lg bg-white/10 px-3 py-1.5 text-sm font-semibold text-white">
+                    {genrePage}
+                  </span>
+                  {genrePage * 12 < genreItems.length && (
+                    <button
+                      onClick={() => setGenrePage(genrePage + 1)}
+                      className="rounded-lg px-3 py-1.5 text-sm text-slate-400 transition hover:bg-white/10 hover:text-white"
+                    >
+                      {genrePage + 1}
+                    </button>
+                  )}
+                  {(genrePage + 1) * 12 < genreItems.length && (
+                    <button
+                      onClick={() => setGenrePage(genrePage + 2)}
+                      className="rounded-lg px-3 py-1.5 text-sm text-slate-400 transition hover:bg-white/10 hover:text-white"
+                    >
+                      {genrePage + 2}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setGenrePage((p) => p + 1)}
+                    disabled={genrePage * 12 >= genreItems.length}
+                    className="rounded-lg bg-white/10 px-3 py-1.5 text-sm text-slate-300 transition hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => setGenrePage(Math.ceil(genreItems.length / 12))}
+                    disabled={genrePage * 12 >= genreItems.length}
+                    className="rounded-lg bg-white/10 px-3 py-1.5 text-sm text-slate-300 transition hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+              </section>
+            )}
+
+            {!searchQuery && !genreFilter && (
               <div className="space-y-10">
                 {["Action", "Comedy", "Drama", "Sci-Fi", "Horror", "Thriller", "Romance", "Animation"].map((category) => (
                   <GenreCarousel
