@@ -389,37 +389,36 @@ export default function App() {
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950/40 via-transparent to-transparent" />
 
       <header className="relative border-b border-white/[0.06] bg-[#0a0a0f]/80 px-6 py-5 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div className="flex items-center gap-3">
             <img src="/favicon.png?v=3" alt="Watch Deck" className="h-10 w-10 rounded-lg" />
             <h1 className="bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-3xl font-bold tracking-tight text-transparent">
               {strings.appTitle}
             </h1>
           </div>
+
+          <nav className="flex items-center gap-1">
+            {MAIN_TABS.map((tab) => (
+              <button
+                key={tab}
+                onClick={() => {
+                  if (tab === "discover") handleBackToDiscover();
+                  else setActiveMainTab(tab);
+                }}
+                className={`rounded-xl px-5 py-2 text-sm font-medium transition-all duration-200 ${
+                  activeMainTab === tab
+                    ? "bg-white/10 text-white"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                {tab === "discover" ? strings.tabDiscover : strings.tabMyLists}
+              </button>
+            ))}
+          </nav>
+
           <LanguageToggle language={language} onChange={setLanguage} label={strings.language} />
         </div>
       </header>
-
-      <div className="relative mx-auto mt-6 flex max-w-7xl justify-center px-6">
-        <nav className="inline-flex gap-1 rounded-2xl bg-white/[0.04] p-1.5 backdrop-blur-sm ring-1 ring-white/[0.08]">
-          {MAIN_TABS.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => {
-                if (tab === "discover") handleBackToDiscover();
-                else setActiveMainTab(tab);
-              }}
-              className={`rounded-xl px-6 py-2.5 text-sm font-medium transition-all duration-200 ${
-                activeMainTab === tab
-                  ? "bg-white/10 text-white shadow-lg shadow-white/5 ring-1 ring-white/10"
-                  : "text-slate-400 hover:text-slate-200"
-              }`}
-            >
-              {tab === "discover" ? strings.tabDiscover : strings.tabMyLists}
-            </button>
-          ))}
-        </nav>
-      </div>
 
       <main className="relative mx-auto max-w-7xl px-6 py-8">
         {activeMainTab === "discover" && (
@@ -1029,7 +1028,7 @@ export default function App() {
               </div>
             </div>
 
-            <div className="relative max-w-md">
+            <div className="relative w-full">
               <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
