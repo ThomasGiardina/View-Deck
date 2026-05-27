@@ -40,7 +40,7 @@ export default function MovieDetailModal({ isOpen, onClose, movie, strings, onSa
                 <img src={movie.poster} alt={movie.name} className="w-full rounded-2xl object-cover shadow-lg shadow-black/30" />
               ) : (
                 <div className="flex h-72 items-center justify-center rounded-2xl bg-white/5 text-slate-500">
-                  Sin poster
+                  {strings.noPoster}
                 </div>
               )}
             </div>
@@ -69,7 +69,7 @@ export default function MovieDetailModal({ isOpen, onClose, movie, strings, onSa
               <div className="flex flex-wrap gap-2 text-xs">
                 {(movie.genres || []).map((genre) => (
                   <span key={genre} className="rounded-full bg-white/5 px-3 py-1.5 font-medium text-slate-400">
-                    {genre}
+                    {strings.genreTranslations?.[genre] || genre}
                   </span>
                 ))}
               </div>
@@ -90,7 +90,7 @@ export default function MovieDetailModal({ isOpen, onClose, movie, strings, onSa
                 </label>
 
                 <label className="flex flex-col gap-2 text-sm text-slate-300">
-                  <span className="text-xs font-medium uppercase tracking-wider text-slate-500">{strings.rating} (1-10)</span>
+                  <span className="text-xs font-medium uppercase tracking-wider text-slate-500">{strings.rating} {strings.ratingHint}</span>
                   <input
                     type="number"
                     min="1"

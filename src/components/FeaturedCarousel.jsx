@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-export default function FeaturedCarousel({ items, onSelect }) {
+export default function FeaturedCarousel({ items, onSelect, strings }) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
@@ -21,7 +21,7 @@ export default function FeaturedCarousel({ items, onSelect }) {
   return (
     <section className="space-y-5">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-white">Recomendadas</h2>
+        <h2 className="text-xl font-semibold text-white">{strings.recommendations}</h2>
       </div>
 
       <div className="relative overflow-hidden rounded-3xl border border-white/[0.06] bg-white/[0.02] md:h-[420px]">
@@ -41,7 +41,7 @@ export default function FeaturedCarousel({ items, onSelect }) {
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center bg-white/5">
-                <span className="text-slate-500">Sin imagen</span>
+                <span className="text-slate-500">{strings.noImage}</span>
               </div>
             )}
             <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
@@ -60,7 +60,7 @@ export default function FeaturedCarousel({ items, onSelect }) {
                   <div className="mt-3 flex flex-wrap gap-2">
                     {(featured.genres || []).slice(0, 3).map((genre) => (
                       <span key={genre} className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-slate-300">
-                        {genre}
+                        {strings?.genreTranslations?.[genre] || genre}
                       </span>
                     ))}
                   </div>
@@ -71,7 +71,7 @@ export default function FeaturedCarousel({ items, onSelect }) {
                     <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
                     </svg>
-                    Ver detalles
+                    {strings.viewDetails}
                   </button>
                 </div>
               </div>

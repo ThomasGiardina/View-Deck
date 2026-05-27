@@ -4,7 +4,8 @@ import GenreCarousel from "./components/GenreCarousel.jsx";
 import FeaturedCarousel from "./components/FeaturedCarousel.jsx";
 import LanguageToggle from "./components/LanguageToggle.jsx";
 import { GENRES } from "./data/genres.js";
-import { STRINGS } from "./data/i18n.js";
+import { STRINGS, translateGenre } from "./data/i18n.js";
+import { translate } from "./services/translate.js";
 import {
   fetchMovieDetails,
   fetchTopMovies,
@@ -78,6 +79,7 @@ export default function App() {
   const [detailItem, setDetailItem] = useState(null);
   const [detailFull, setDetailFull] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [translatedDesc, setTranslatedDesc] = useState("");
   const [detailList, setDetailList] = useState("watchlist");
   const [detailRating, setDetailRating] = useState(0);
   const [detailWatchedDate, setDetailWatchedDate] = useState("");
@@ -107,7 +109,7 @@ export default function App() {
     const fetchFn = contentType === "movie" ? fetchTopMovies : fetchTopSeries;
     fetchFn({ skip: 0 })
       .then((data) => setTopItems(data.map(normalizeMovie)))
-      .catch(() => setError("Error cargando recomendaciones"))
+      .catch(() => setError(strings.errorRecommendations))
       .finally(() => setIsLoading(false));
 
     const CATEGORIES = ["Action", "Comedy", "Drama", "Sci-Fi", "Horror", "Thriller", "Romance", "Animation"];
@@ -178,7 +180,7 @@ export default function App() {
       const searchFn = contentType === "movie" ? searchMovies : searchSeries;
       searchFn(searchQuery)
         .then((data) => setSearchResults(data.map(normalizeMovie)))
-        .catch(() => setError("Error en búsqueda"));
+        .catch(() => setError(strings.errorSearch));
     }, 300);
     return () => clearTimeout(handler);
   }, [searchQuery, contentType]);
@@ -268,6 +270,7 @@ export default function App() {
     setDetailLoading(true);
     setSaveSuccess(false);
     setError("");
+    setTranslatedDesc("");
     setActiveMainTab("detail");
 
     if (foundEntry) {
@@ -291,9 +294,13 @@ export default function App() {
     try {
       const fetchFn = contentType === "movie" ? fetchMovieDetails : fetchSeriesDetails;
       const details = await fetchFn(normalized.imdbId);
-      if (details) setDetailFull(normalizeMovie(details));
+      if (details) {
+        const full = normalizeMovie(details);
+        setDetailFull(full);
+        translate(full.description, language).then(setTranslatedDesc);
+      }
     } catch {
-      setError("Error cargando detalle");
+      setError(strings.errorDetail);
     } finally {
       setDetailLoading(false);
     }
@@ -313,6 +320,7 @@ export default function App() {
     setActiveMainTab("discover");
     setSaveSuccess(false);
     setError("");
+    setTranslatedDesc("");
   };
 
   const handleSaveEntry = () => {
@@ -391,7 +399,7 @@ export default function App() {
       <header className="relative border-b border-white/[0.06] bg-[#0a0a0f]/80 px-6 py-5 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/favicon.png?v=3" alt="Watch Deck" className="h-10 w-10 rounded-lg" />
+            <img src="/favicon.png?v=3" alt={strings.appTitle} className="h-10 w-10 rounded-lg" />
             <h1 className="bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-3xl font-bold tracking-tight text-transparent">
               {strings.appTitle}
             </h1>
@@ -444,9 +452,9 @@ export default function App() {
                       onChange={(event) => setGenreFilter(event.target.value)}
                       className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-100 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                     >
-                      <option value="" className="bg-slate-900">Todos</option>
+                      <option value="" className="bg-slate-900">{strings.all}</option>
                       {GENRES.map((genre) => (
-                        <option key={genre} value={genre} className="bg-slate-900">{genre}</option>
+                        <option key={genre} value={genre} className="bg-slate-900">{translateGenre(genre, strings)}</option>
                       ))}
                     </select>
                   </label>
@@ -457,7 +465,7 @@ export default function App() {
                       onChange={(event) => setYearFilter(event.target.value)}
                       className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-100 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                     >
-                      <option value="" className="bg-slate-900">Todos</option>
+                      <option value="" className="bg-slate-900">{strings.all}</option>
                       {availableYears.map((year) => (
                         <option key={year} value={year} className="bg-slate-900">{year}</option>
                       ))}
@@ -483,7 +491,7 @@ export default function App() {
             </div>
 
             {!searchQuery && (
-              <FeaturedCarousel items={recommendedItems} onSelect={handleOpenDetail} />
+              <FeaturedCarousel items={recommendedItems} onSelect={handleOpenDetail} strings={strings} />
             )}
 
             {searchQuery && (
@@ -495,7 +503,7 @@ export default function App() {
                   {isLoading && (
                     <div className="flex items-center gap-2 text-xs text-slate-500">
                       <div className="h-3 w-3 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
-                      Cargando...
+                      {strings.loading}
                     </div>
                   )}
                 </div>
@@ -508,7 +516,7 @@ export default function App() {
 
                 <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
                   {filteredResults.slice(0, 8).map((item) => (
-                    <MovieCard key={item.imdbId} item={item} onSelect={handleOpenDetail} actionLabel={strings.details} onAction={handleOpenDetail} />
+                    <MovieCard key={item.imdbId} item={item} onSelect={handleOpenDetail} actionLabel={strings.details} onAction={handleOpenDetail} strings={strings} />
                   ))}
                 </div>
               </section>
@@ -521,7 +529,7 @@ export default function App() {
                 </div>
                 <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
                   {topItems.slice(0, 8).map((item) => (
-                    <MovieCard key={item.imdbId} item={item} onSelect={handleOpenDetail} actionLabel={strings.details} onAction={handleOpenDetail} />
+                    <MovieCard key={item.imdbId} item={item} onSelect={handleOpenDetail} actionLabel={strings.details} onAction={handleOpenDetail} strings={strings} />
                   ))}
                 </div>
               </section>
@@ -530,13 +538,13 @@ export default function App() {
             {!searchQuery && genreFilter && (
               <section className="space-y-5">
                 <div>
-                  <h2 className="text-xl font-semibold text-white">{genreFilter}</h2>
+                  <h2 className="text-xl font-semibold text-white">{translateGenre(genreFilter, strings)}</h2>
                 </div>
                 <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
                   {genreItems
                     .slice((genrePage - 1) * 12, genrePage * 12)
                     .map((item) => (
-                      <MovieCard key={item.imdbId} item={item} onSelect={handleOpenDetail} actionLabel={strings.details} onAction={handleOpenDetail} />
+                      <MovieCard key={item.imdbId} item={item} onSelect={handleOpenDetail} actionLabel={strings.details} onAction={handleOpenDetail} strings={strings} />
                     ))}
                 </div>
                 <div className="flex justify-center items-center gap-2">
@@ -624,7 +632,7 @@ export default function App() {
                   {yearItems
                     .slice((yearPage - 1) * 12, yearPage * 12)
                     .map((item) => (
-                      <MovieCard key={item.imdbId} item={item} onSelect={handleOpenDetail} actionLabel={strings.details} onAction={handleOpenDetail} />
+                      <MovieCard key={item.imdbId} item={item} onSelect={handleOpenDetail} actionLabel={strings.details} onAction={handleOpenDetail} strings={strings} />
                     ))}
                 </div>
                 <div className="flex justify-center items-center gap-2">
@@ -708,7 +716,7 @@ export default function App() {
                 {["Action", "Comedy", "Drama", "Sci-Fi", "Horror", "Thriller", "Romance", "Animation"].map((category) => (
                   <GenreCarousel
                     key={category}
-                    title={category}
+                    title={translateGenre(category, strings)}
                     items={categoryItems[category] || []}
                     onSelect={handleOpenDetail}
                   />
@@ -740,7 +748,7 @@ export default function App() {
                   />
                 ) : (
                   <div className="flex aspect-[2/3] items-center justify-center rounded-2xl bg-white/5 text-slate-500">
-                    Sin poster
+                    {strings.noPoster}
                   </div>
                 )}
               </div>
@@ -751,14 +759,14 @@ export default function App() {
                   <p className="mt-2 text-sm text-slate-400">{displayItem.year ?? ""}</p>
                 </div>
 
-                {displayItem.description && (
-                  <p className="text-sm leading-relaxed text-slate-300">{displayItem.description}</p>
+                {(translatedDesc || displayItem.description) && (
+                  <p className="text-sm leading-relaxed text-slate-300">{translatedDesc || displayItem.description}</p>
                 )}
 
                 <div className="flex flex-wrap gap-2">
                   {(displayItem.genres || []).map((genre) => (
                     <span key={genre} className="rounded-full bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-400">
-                      {genre}
+                      {translateGenre(genre, strings)}
                     </span>
                   ))}
                 </div>
@@ -770,7 +778,7 @@ export default function App() {
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                       </svg>
                       <div>
-                        <p className="text-sm font-semibold text-white">{displayItem.imdbRating}/10</p>
+                        <p className="text-sm font-semibold text-white">{displayItem.imdbRating}{strings.ratingSuffix}</p>
                         <p className="text-xs text-slate-500">{strings.imdbRating}</p>
                       </div>
                     </div>
@@ -826,12 +834,12 @@ export default function App() {
 
                 <div className="space-y-4 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
                   <h3 className="text-sm font-semibold text-white">
-                    {existingEntry ? `${strings.addedToList} ${getListLabel(existingEntry.list, strings)}` : "Agregar a Mi Lista"}
+                    {existingEntry ? `${strings.addedToList} ${getListLabel(existingEntry.list, strings)}` : strings.addFormTitle}
                   </h3>
 
                   {saveSuccess && (
                     <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-sm text-emerald-300">
-                      {existingEntry ? "Entrada actualizada" : "Agregado correctamente"}
+                      {existingEntry ? strings.saveUpdated : strings.saveAdded}
                     </div>
                   )}
 
@@ -866,7 +874,7 @@ export default function App() {
                     </label>
 
                     <label className="flex flex-col gap-2">
-                      <span className="text-xs font-medium uppercase tracking-wider text-slate-500">{strings.rating} (1-10)</span>
+                      <span className="text-xs font-medium uppercase tracking-wider text-slate-500">{strings.rating} {strings.ratingHint}</span>
                       <input
                         type="text"
                         inputMode="numeric"
@@ -920,7 +928,7 @@ export default function App() {
                             disabled={detailList === "watched" || detailList === "watchlist"}
                             className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-100 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            <option value="" className="bg-slate-900">Seleccionar</option>
+                            <option value="" className="bg-slate-900">{strings.selectOption}</option>
                             {Object.keys(detailEpisodes?.episodesBySeason || displayItem.episodesBySeason)
                               .sort((a, b) => Number(a) - Number(b))
                               .map((season) => (
@@ -939,7 +947,7 @@ export default function App() {
                             disabled={!detailCurrentSeason || detailList === "watched" || detailList === "watchlist"}
                             className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-100 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            <option value="" className="bg-slate-900">Seleccionar</option>
+                            <option value="" className="bg-slate-900">{strings.selectOption}</option>
                             {detailCurrentSeason &&
                               Array.from({ length: (detailEpisodes?.episodesBySeason || displayItem.episodesBySeason)[detailCurrentSeason] || 0 }, (_, i) => i + 1).map((ep) => (
                                 <option key={ep} value={ep} className="bg-slate-900">
@@ -998,7 +1006,7 @@ export default function App() {
                       : "text-slate-400 hover:text-slate-200"
                   }`}
                 >
-                  Todas
+                  {strings.all}
                 </button>
                 {LISTS.map((list) => (
                   <button
@@ -1079,7 +1087,7 @@ export default function App() {
 
                   {filteredEntriesByList[list].length === 0 ? (
                     <div className="px-6 py-12 text-center">
-                      <p className="text-sm text-slate-500">{listSearchQuery ? "Sin resultados" : strings.listEmpty}</p>
+                      <p className="text-sm text-slate-500">{listSearchQuery ? strings.noResults : strings.listEmpty}</p>
                     </div>
                   ) : (
                     <div className="grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -1107,7 +1115,7 @@ export default function App() {
                             {entry.currentSeason && entry.currentEpisode && (
                               <div className="mt-1 flex items-center gap-1">
                                 <span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-xs font-medium text-blue-300">
-                                  S{entry.currentSeason}E{entry.currentEpisode}
+                                  {strings.seasonEpisodeFmt.replace("{1}", entry.currentSeason).replace("{2}", entry.currentEpisode)}
                                 </span>
                               </div>
                             )}
@@ -1116,7 +1124,7 @@ export default function App() {
                                 <svg className="h-3 w-3 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
                                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                                 </svg>
-                                <span className="text-xs font-medium text-amber-400">{entry.rating}/10</span>
+                                <span className="text-xs font-medium text-amber-400">{entry.rating}{strings.ratingSuffix}</span>
                               </div>
                             )}
                           </div>
@@ -1138,7 +1146,7 @@ export default function App() {
         <div className="mx-auto max-w-7xl px-6 pt-16">
           <div className="flex flex-col items-start justify-between gap-8 md:flex-row md:items-center">
             <p className="max-w-sm text-sm text-slate-500">
-              Guardá, calificá y organizá películas y series en un solo lugar. Tu biblioteca personal, siempre a mano.
+              {strings.footerTagline}
             </p>
             <div className="flex gap-3">
               <a href="#" className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10 text-slate-400 transition hover:bg-white/15 hover:text-white">
@@ -1151,28 +1159,28 @@ export default function App() {
           </div>
 
           <div className="mt-16 flex items-center gap-6">
-            <img src="/favicon.png?v=3" alt="Watch Deck" className="h-20 w-20 rounded-2xl" />
+            <img src="/favicon.png?v=3" alt={strings.appTitle} className="h-20 w-20 rounded-2xl" />
             <h2 className="bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-6xl font-bold tracking-tight text-transparent md:text-7xl lg:text-8xl">
-              Watch Deck
+              {strings.appTitle}
             </h2>
           </div>
         </div>
 
         <div className="mt-2 border-t border-white/[0.06] bg-white/[0.02] px-6 py-4">
           <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 md:flex-row">
-            <p className="text-xs text-slate-600">© {new Date().getFullYear()} Watch Deck</p>
+            <p className="text-xs text-slate-600">{strings.copyright.replace("{year}", new Date().getFullYear())}</p>
             <div className="flex gap-6">
               <button
                 onClick={() => { setActiveMainTab("discover"); }}
                 className="text-xs text-slate-600 transition hover:text-slate-400"
               >
-                Descubrir
+                {strings.tabDiscover}
               </button>
               <button
                 onClick={() => { setActiveMainTab("mylists"); }}
                 className="text-xs text-slate-600 transition hover:text-slate-400"
               >
-                Mi Lista
+                {strings.tabMyLists}
               </button>
             </div>
           </div>
