@@ -23,26 +23,19 @@ import { deriveSimilarGenres, normalizeMovie, sortEntries } from "./utils/movies
 const LISTS = ["watched", "watchlist", "inprogress", "favorites", "abandoned"];
 const MAIN_TABS = ["discover", "mylists"];
 
-const LIST_ICONS = {
-  watched: "🎬",
-  watchlist: "📋",
-  inprogress: "▶️",
-  favorites: "❤️",
-  abandoned: "⏸️",
-};
-
-const LIST_GRADIENTS = {
-  watched: "from-emerald-500/10 to-teal-500/5 border-emerald-500/20",
-  watchlist: "from-amber-500/10 to-orange-500/5 border-amber-500/20",
-  inprogress: "from-blue-500/10 to-indigo-500/5 border-blue-500/20",
-  favorites: "from-rose-500/10 to-pink-500/5 border-rose-500/20",
-  abandoned: "from-slate-500/10 to-zinc-500/5 border-slate-500/20",
+const LIST_ACCENTS = {
+  watched: "border-l-2 border-l-emerald-500",
+  watchlist: "border-l-2 border-l-amber-500",
+  inprogress: "border-l-2 border-l-blue-500",
+  favorites: "border-l-2 border-l-rose-500",
+  abandoned: "border-l-2 border-l-slate-500",
 };
 
 function getListLabel(list, strings) {
   switch (list) {
     case "watched": return strings.watched;
     case "watchlist": return strings.watchlist;
+    case "inprogress": return strings.inprogress;
     case "favorites": return strings.favorites;
     case "abandoned": return strings.abandoned;
     default: return list;
@@ -1018,7 +1011,7 @@ export default function App() {
                         : "text-slate-400 hover:text-slate-200"
                     }`}
                   >
-                    {LIST_ICONS[list]} {getListLabel(list, strings)}
+                    {getListLabel(list, strings)}
                     <span className="ml-1.5 text-xs opacity-60">({entriesByList[list].length})</span>
                   </button>
                 ))}
@@ -1049,48 +1042,51 @@ export default function App() {
             </div>
 
             {entries.length > 0 && (
-              <div className="grid gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 md:grid-cols-3">
-                <div className="rounded-xl bg-white/[0.03] p-4 text-center">
-                  <p className="text-2xl font-bold text-white">{stats.total}</p>
-                  <p className="mt-1 text-xs text-slate-500">{strings.statsTotal}</p>
+              <>
+                <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+                  <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 py-3 text-center">
+                    <p className="text-lg font-bold text-white">{stats.total}</p>
+                    <p className="mt-0.5 text-[11px] text-slate-500">{strings.statsTotal}</p>
+                  </div>
+                  {LISTS.map((list) => (
+                    <div key={list} className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-3 text-center">
+                      <p className="text-lg font-bold text-white">{entriesByList[list].length}</p>
+                      <p className="mt-0.5 text-[11px] text-slate-500">{getListLabel(list, strings)}</p>
+                    </div>
+                  ))}
                 </div>
-                <div className="rounded-xl bg-white/[0.03] p-4 text-center">
-                  <p className="text-2xl font-bold text-white">{stats.avgRating}</p>
-                  <p className="mt-1 text-xs text-slate-500">{strings.statsAvgRating}</p>
+
+                <div className="flex items-center gap-3 text-xs text-slate-500">
+                  <span>{strings.statsTotal}: <strong className="text-slate-300">{stats.total}</strong></span>
+                  <span className="text-white/[0.06]">|</span>
+                  <span>{strings.statsAvgRating}: <strong className="text-slate-300">{stats.avgRating}</strong></span>
+                  <span className="text-white/[0.06]">|</span>
+                  <span>{strings.statsTopGenre}: <strong className="text-slate-300">{stats.topGenre}</strong></span>
                 </div>
-                <div className="rounded-xl bg-white/[0.03] p-4 text-center">
-                  <p className="text-2xl font-bold text-white">{stats.topGenre}</p>
-                  <p className="mt-1 text-xs text-slate-500">{strings.statsTopGenre}</p>
-                </div>
-              </div>
+              </>
             )}
 
-            <div className="space-y-6">
+            <div className="space-y-4">
               {listsToShow.map((list) => (
                 <div
                   key={list}
-                  className={`overflow-hidden rounded-3xl border bg-gradient-to-br ${LIST_GRADIENTS[list]}`}
+                  className={`overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] ${LIST_ACCENTS[list]}`}
                 >
-                  <div className="border-b border-white/[0.06] px-6 py-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <span className="text-xl">{LIST_ICONS[list]}</span>
-                        <h3 className="text-lg font-semibold text-slate-100">
-                          {getListLabel(list, strings)}
-                        </h3>
-                        <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-medium text-slate-300">
-                          {entriesByList[list].length}
-                        </span>
-                      </div>
+                  <div className="border-b border-white/[0.06] px-5 py-3">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-semibold text-slate-100">
+                        {getListLabel(list, strings)}
+                      </h3>
+                      <span className="text-xs text-slate-500">({entriesByList[list].length})</span>
                     </div>
                   </div>
 
                   {filteredEntriesByList[list].length === 0 ? (
-                    <div className="px-6 py-12 text-center">
+                    <div className="px-5 py-10 text-center">
                       <p className="text-sm text-slate-500">{listSearchQuery ? strings.noResults : strings.listEmpty}</p>
                     </div>
                   ) : (
-                    <div className="grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="divide-y divide-white/[0.04]">
                       {filteredEntriesByList[list].map((entry) => (
                         <button
                           key={entry.imdbId}
@@ -1098,35 +1094,35 @@ export default function App() {
                             setContentType(entry.type || "movie");
                             handleOpenDetail(entry);
                           }}
-                          className="group flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-3 text-left transition-all hover:border-white/10 hover:bg-white/[0.06]"
+                          className="flex w-full items-center gap-3 px-5 py-3 text-left transition hover:bg-white/[0.02]"
                         >
                           {entry.poster ? (
                             <img
                               src={entry.poster}
                               alt={entry.name}
-                              className="h-16 w-12 flex-shrink-0 rounded-lg object-cover transition-transform duration-200 group-hover:scale-105"
+                              className="h-12 w-9 flex-shrink-0 rounded-lg object-cover"
                             />
                           ) : (
-                            <div className="h-16 w-12 flex-shrink-0 rounded-lg bg-white/5" />
+                            <div className="h-12 w-9 flex-shrink-0 rounded-lg bg-white/5" />
                           )}
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium text-slate-100">{entry.name}</p>
-                            <p className="text-xs text-slate-500">{entry.year}</p>
-                            {entry.currentSeason && entry.currentEpisode && (
-                              <div className="mt-1 flex items-center gap-1">
-                                <span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-xs font-medium text-blue-300">
+                            <div className="flex items-baseline gap-2">
+                              <p className="truncate text-sm font-medium text-slate-100">{entry.name}</p>
+                              <span className="shrink-0 text-xs text-slate-500">{entry.year}</span>
+                            </div>
+                            <div className="mt-0.5 flex items-center gap-2">
+                              {entry.rating > 0 && (
+                                <span className="text-xs text-amber-400">★ {entry.rating}{strings.ratingSuffix}</span>
+                              )}
+                              {entry.currentSeason && entry.currentEpisode && (
+                                <span className="rounded-md bg-blue-500/15 px-1.5 py-0.5 text-[11px] font-medium text-blue-400">
                                   {strings.seasonEpisodeFmt.replace("{1}", entry.currentSeason).replace("{2}", entry.currentEpisode)}
                                 </span>
-                              </div>
-                            )}
-                            {entry.rating > 0 && (
-                              <div className="mt-1 flex items-center gap-1">
-                                <svg className="h-3 w-3 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-                                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                </svg>
-                                <span className="text-xs font-medium text-amber-400">{entry.rating}{strings.ratingSuffix}</span>
-                              </div>
-                            )}
+                              )}
+                              {entry.addedAt && (
+                                <span className="text-[11px] text-slate-600">{new Date(entry.addedAt).toLocaleDateString()}</span>
+                              )}
+                            </div>
                           </div>
                           <svg className="h-4 w-4 flex-shrink-0 text-slate-600 transition-colors group-hover:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
