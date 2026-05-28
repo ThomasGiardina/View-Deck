@@ -6,6 +6,7 @@ import DiscoverView from "./components/DiscoverView";
 import DetailView from "./components/DetailView";
 import MyListsView from "./components/MyListsView";
 import SettingsView from "./components/SettingsView";
+import ResetPasswordView from "./components/ResetPasswordView";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { LanguageProvider } from "./services/LanguageContext";
 
@@ -23,6 +24,7 @@ export default function App() {
             <Route path="/discover" element={<DiscoverView />} />
             <Route path="/detail/:imdbId" element={<DetailView />} />
             <Route path="/settings" element={<SettingsView />} />
+            <Route path="/reset-password" element={<ResetPasswordView />} />
             <Route element={<ProtectedRoute />}>
               <Route path="/mylists" element={<MyListsView />} />
             </Route>
