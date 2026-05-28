@@ -1,6 +1,8 @@
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../services/AuthContext";
 import { useLanguage } from "../services/LanguageContext";
+import { getProfile } from "../services/profile";
 import { signOut } from "../services/auth";
 
 export default function Header() {
@@ -8,8 +10,23 @@ export default function Header() {
   const { strings } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
+  const [profile, setProfile] = useState(null);
+
+  useEffect(() => {
+    if (user) {
+      getProfile(user.id).then(setProfile);
+    } else {
+      setProfile(null);
+    }
+  }, [user]);
 
   const isActive = (path) => location.pathname.startsWith(path);
+
+  const avatarColor = profile?.username
+    ? `hsl(${profile.username.split("").reduce((a, c) => a + c.charCodeAt(0), 0) % 360}, 60%, 50%)`
+    : "#6366f1";
+
+  const avatarLetter = (profile?.username || user?.email || "?")[0].toUpperCase();
 
   return (
     <header className="relative border-b border-[var(--theme-border)] bg-[var(--theme-header)] px-6 py-5 backdrop-blur-xl">
@@ -66,7 +83,19 @@ export default function Header() {
           </button>
           {user ? (
             <div className="flex items-center gap-2">
-              <span className="hidden text-xs text-[var(--theme-text-dim)] md:block">{user.email}</span>
+              <div className="hidden items-center gap-2 md:flex">
+                <div
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold text-white"
+                  style={{ backgroundColor: avatarColor }}
+                >
+                  {avatarLetter}
+                </div>
+                {profile?.username && (
+                  <span className="text-sm text-[var(--theme-text)]">
+                    {profile.username}
+                  </span>
+                )}
+              </div>
               <button
                 onClick={() => signOut()}
                 className="rounded-xl border border-[var(--theme-border)] px-4 py-2 text-xs font-medium text-[var(--theme-text-muted)] transition hover:border-[var(--theme-border-input)] hover:text-[var(--theme-text)]"
