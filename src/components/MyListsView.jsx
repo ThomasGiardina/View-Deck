@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { List, CheckCheck, Bookmark, Play, Heart, XCircle } from "lucide-react";
 import { loadEntries } from "../services/storage";
 import { sortEntries } from "../utils/movies";
 import { useAuth } from "../services/AuthContext";
@@ -14,6 +15,14 @@ const LIST_ACCENTS = {
   inprogress: "border-l-2 border-l-blue-500",
   favorites: "border-l-2 border-l-rose-500",
   abandoned: "border-l-2 border-l-slate-500",
+};
+
+const LIST_ICONS = {
+  watched: CheckCheck,
+  watchlist: Bookmark,
+  inprogress: Play,
+  favorites: Heart,
+  abandoned: XCircle,
 };
 
 function getListLabel(list, strings) {
@@ -109,22 +118,27 @@ export default function MyListsView() {
                 : "text-[var(--theme-text-muted)] hover:text-slate-200"
             }`}
           >
+            <List className="mr-1.5 inline-block h-3.5 w-3.5" />
             {strings.all}
           </button>
-          {LISTS.map((list) => (
-            <button
-              key={list}
-              onClick={() => { setActiveListTab(list); setListSearchQuery(""); }}
-              className={`rounded-xl px-4 py-2 text-sm font-medium transition-all ${
-                activeListTab === list
-                  ? "bg-[var(--theme-active)] text-[var(--theme-text)] ring-1 ring-white/10"
-                  : "text-[var(--theme-text-muted)] hover:text-slate-200"
-              }`}
-            >
-              {getListLabel(list, strings)}
-              <span className="ml-1.5 text-xs opacity-60">({entriesByList[list].length})</span>
-            </button>
-          ))}
+          {LISTS.map((list) => {
+            const Icon = LIST_ICONS[list];
+            return (
+              <button
+                key={list}
+                onClick={() => { setActiveListTab(list); setListSearchQuery(""); }}
+                className={`rounded-xl px-4 py-2 text-sm font-medium transition-all ${
+                  activeListTab === list
+                    ? "bg-[var(--theme-active)] text-[var(--theme-text)] ring-1 ring-white/10"
+                    : "text-[var(--theme-text-muted)] hover:text-slate-200"
+                }`}
+              >
+                <Icon className="mr-1.5 inline-block h-3.5 w-3.5" />
+                {getListLabel(list, strings)}
+                <span className="ml-1.5 text-xs opacity-60">({entriesByList[list].length})</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -145,14 +159,23 @@ export default function MyListsView() {
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
             <div className="rounded-xl border border-[var(--theme-border-input)] bg-[var(--theme-surface)] px-3 py-3 text-center">
               <p className="text-lg font-bold text-[var(--theme-text)]">{stats.total}</p>
-              <p className="mt-0.5 text-[11px] text-[var(--theme-text-dim)]">{strings.statsTotal}</p>
+              <p className="mt-0.5 flex items-center justify-center gap-1 text-[11px] text-[var(--theme-text-dim)]">
+                <List className="h-3 w-3" />
+                {strings.statsTotal}
+              </p>
             </div>
-            {LISTS.map((list) => (
-              <div key={list} className="rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] px-3 py-3 text-center">
-                <p className="text-lg font-bold text-[var(--theme-text)]">{entriesByList[list].length}</p>
-                <p className="mt-0.5 text-[11px] text-[var(--theme-text-dim)]">{getListLabel(list, strings)}</p>
-              </div>
-            ))}
+            {LISTS.map((list) => {
+              const Icon = LIST_ICONS[list];
+              return (
+                <div key={list} className="rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] px-3 py-3 text-center">
+                  <p className="text-lg font-bold text-[var(--theme-text)]">{entriesByList[list].length}</p>
+                  <p className="mt-0.5 flex items-center justify-center gap-1 text-[11px] text-[var(--theme-text-dim)]">
+                    <Icon className="h-3 w-3" />
+                    {getListLabel(list, strings)}
+                  </p>
+                </div>
+              );
+            })}
           </div>
 
           <div className="flex items-center gap-3 text-xs text-[var(--theme-text-dim)]">
