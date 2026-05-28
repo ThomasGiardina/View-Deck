@@ -31,16 +31,37 @@ export async function loadEntries(userId) {
 
 export async function upsertEntry(userId, entry) {
   const dbEntry = mapAppToEntry(userId, entry);
-  const { data, error } = await supabase
+  console.log("upsertEntry dbEntry:", dbEntry);
+
+  const { data: existing } = await supabase
     .from("entries")
-    .upsert(dbEntry, { onConflict: "user_id,imdb_id,type" })
-    .select()
-    .single();
-  if (error) {
-    console.error("Error saving entry:", error);
+    .select("id")
+    .eq("user_id", userId)
+    .eq("imdb_id", entry.imdbId)
+    .eq("type", entry.type)
+    .maybeSingle();
+
+  let result;
+  if (existing) {
+    result = await supabase
+      .from("entries")
+      .update(dbEntry)
+      .eq("id", existing.id)
+      .select()
+      .single();
+  } else {
+    result = await supabase
+      .from("entries")
+      .insert(dbEntry)
+      .select()
+      .single();
+  }
+
+  if (result.error) {
+    console.error("Error saving entry:", result.error);
     return null;
   }
-  return mapEntryToApp(data);
+  return mapEntryToApp(result.data);
 }
 
 export async function removeEntry(userId, imdbId, type) {
@@ -87,19 +108,19 @@ function mapEntryToApp(dbEntry) {
 function mapAppToEntry(userId, entry) {
   return {
     user_id: userId,
-    imdb_id: entry.imdbId,
-    name: entry.name,
-    year: entry.year,
-    poster: entry.poster,
+    imdb_id: entry.imdbId || "",
+    name: entry.name || "",
+    year: entry.year || "",
+    poster: entry.poster || "",
     genres: entry.genres || [],
-    list: entry.list,
-    rating: entry.rating,
-    watched_date: entry.watchedDate,
-    review: entry.review,
-    rewatch_count: entry.rewatchCount,
-    current_season: entry.currentSeason,
-    current_episode: entry.currentEpisode,
+    list: entry.list || "watchlist",
+    rating: entry.rating ?? 0,
+    watched_date: entry.watchedDate || null,
+    review: entry.review || null,
+    rewatch_count: entry.rewatchCount ?? 0,
+    current_season: entry.currentSeason || null,
+    current_episode: entry.currentEpisode || null,
     added_at: entry.addedAt || new Date().toISOString(),
-    type: entry.type,
+    type: entry.type || "movie",
   };
 }

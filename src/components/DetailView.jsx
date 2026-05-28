@@ -132,8 +132,11 @@ export default function DetailView() {
 
   const displayItem = detailFull || detailItem;
 
+  const [saveError, setSaveError] = useState("");
+
   const handleSaveEntry = async () => {
     if (!displayItem || !user) return;
+    setSaveError("");
     const newEntry = {
       imdbId: displayItem.imdbId,
       name: displayItem.name,
@@ -150,11 +153,14 @@ export default function DetailView() {
       addedAt: new Date().toISOString(),
       type: contentType,
     };
+    console.log("Saving entry:", newEntry);
     const result = await upsertEntry(user.id, newEntry);
     if (result) {
       setEntry(result);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
+    } else {
+      setSaveError("Error al guardar. Revisá la consola.");
     }
   };
 
@@ -319,6 +325,11 @@ export default function DetailView() {
                   {entry ? strings.saveUpdated : strings.saveAdded}
                 </div>
               )}
+              {saveError && (
+                <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-3 text-sm text-red-300">
+                  {saveError}
+                </div>
+              )}
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="flex flex-col gap-2">
@@ -451,7 +462,7 @@ export default function DetailView() {
                 <button
                   type="button"
                   onClick={handleSaveEntry}
-                  className="flex-1 rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-[var(--theme-text)] shadow-lg shadow-indigo-500/20 transition-all hover:bg-indigo-500 hover:shadow-indigo-500/30"
+                  className="flex-1 rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition-all hover:bg-indigo-500 hover:shadow-indigo-500/30"
                 >
                   {entry ? strings.updateEntry : strings.add}
                 </button>
@@ -471,7 +482,7 @@ export default function DetailView() {
               <p className="mb-4 text-sm text-[var(--theme-text-muted)]">{strings.loginPrompt}</p>
               <button
                 onClick={() => navigate("/login")}
-                className="rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-[var(--theme-text)] shadow-lg shadow-indigo-500/20 transition-all hover:bg-indigo-500"
+                className="rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition-all hover:bg-indigo-500"
               >
                 {strings.login}
               </button>
