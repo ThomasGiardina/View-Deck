@@ -38,8 +38,8 @@ export default function AuthScreen({ mode }) {
 
   return (
     <div className="mx-auto max-w-sm pt-20">
-      <div className="rounded-3xl border border-white/[0.06] bg-white/[0.02] p-8 backdrop-blur-sm">
-        <h2 className="text-2xl font-bold text-white text-center mb-8">
+      <div className="rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-8 backdrop-blur-sm">
+        <h2 className="text-2xl font-bold text-[var(--theme-text)] text-center mb-8">
           {isLogin ? strings.login : strings.register}
         </h2>
 
@@ -57,25 +57,25 @@ export default function AuthScreen({ mode }) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <label className="flex flex-col gap-2">
-            <span className="text-xs font-medium uppercase tracking-wider text-slate-500">{strings.email}</span>
+            <span className="text-xs font-medium uppercase tracking-wider text-[var(--theme-text-dim)]">{strings.email}</span>
             <input
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               required
-              className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-slate-100 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              className="rounded-xl border border-[var(--theme-border-input)] bg-[var(--theme-elevated)] px-4 py-3 text-sm text-[var(--theme-text)] transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
             />
           </label>
 
           <label className="flex flex-col gap-2">
-            <span className="text-xs font-medium uppercase tracking-wider text-slate-500">{strings.password}</span>
+            <span className="text-xs font-medium uppercase tracking-wider text-[var(--theme-text-dim)]">{strings.password}</span>
             <input
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               required
               minLength={6}
-              className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-slate-100 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              className="rounded-xl border border-[var(--theme-border-input)] bg-[var(--theme-elevated)] px-4 py-3 text-sm text-[var(--theme-text)] transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
             />
           </label>
 
@@ -90,7 +90,7 @@ export default function AuthScreen({ mode }) {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-slate-400">
+        <p className="mt-6 text-center text-sm text-[var(--theme-text-muted)]">
           {isLogin ? strings.noAccount : strings.hasAccount}{" "}
           <button
             onClick={() => {

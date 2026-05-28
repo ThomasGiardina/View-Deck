@@ -22,7 +22,7 @@ export default function GenreCarousel({ title, items, onSelect }) {
 
   return (
     <section className="space-y-4">
-      <h2 className="text-lg font-semibold text-white">{title}</h2>
+      <h2 className="text-lg font-semibold text-[var(--theme-text)]">{title}</h2>
       <div className="relative overflow-hidden">
         <div className="absolute left-0 top-0 z-10 h-full w-20 bg-gradient-to-r from-[#0a0a0f] to-transparent pointer-events-none" />
         <div className="absolute right-0 top-0 z-10 h-full w-20 bg-gradient-to-l from-[#0a0a0f] to-transparent pointer-events-none" />
@@ -37,16 +37,16 @@ export default function GenreCarousel({ title, items, onSelect }) {
                 <img
                   src={item.poster}
                   alt={item.name}
-                  className="aspect-[2/3] w-full rounded-xl object-cover shadow-lg shadow-black/30"
+                  className="aspect-[2/3] w-full rounded-xl object-cover shadow-lg shadow-[var(--theme-shadow)]"
                   loading="lazy"
                 />
               ) : (
-                <div className="flex aspect-[2/3] items-center justify-center rounded-xl bg-white/5 text-xs text-slate-500">
+                <div className="flex aspect-[2/3] items-center justify-center rounded-xl bg-[var(--theme-hover)] text-xs text-[var(--theme-text-dim)]">
                   {item.name}
                 </div>
               )}
-              <p className="mt-2 line-clamp-1 text-xs text-slate-400">{item.name}</p>
-              {item.year && <p className="text-[10px] text-slate-600">{item.year}</p>}
+              <p className="mt-2 line-clamp-1 text-xs text-[var(--theme-text-muted)]">{item.name}</p>
+              {item.year && <p className="text-[10px] text-[var(--theme-text-dim)]">{item.year}</p>}
             </div>
           ))}
         </div>

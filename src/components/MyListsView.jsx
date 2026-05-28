@@ -105,8 +105,8 @@ export default function MyListsView() {
             onClick={() => { setActiveListTab("all"); setListSearchQuery(""); }}
             className={`rounded-xl px-4 py-2 text-sm font-medium transition-all ${
               activeListTab === "all"
-                ? "bg-white/10 text-white ring-1 ring-white/10"
-                : "text-slate-400 hover:text-slate-200"
+                ? "bg-[var(--theme-active)] text-[var(--theme-text)] ring-1 ring-white/10"
+                : "text-[var(--theme-text-muted)] hover:text-slate-200"
             }`}
           >
             {strings.all}
@@ -117,8 +117,8 @@ export default function MyListsView() {
               onClick={() => { setActiveListTab(list); setListSearchQuery(""); }}
               className={`rounded-xl px-4 py-2 text-sm font-medium transition-all ${
                 activeListTab === list
-                  ? "bg-white/10 text-white ring-1 ring-white/10"
-                  : "text-slate-400 hover:text-slate-200"
+                  ? "bg-[var(--theme-active)] text-[var(--theme-text)] ring-1 ring-white/10"
+                  : "text-[var(--theme-text-muted)] hover:text-slate-200"
               }`}
             >
               {getListLabel(list, strings)}
@@ -129,38 +129,38 @@ export default function MyListsView() {
       </div>
 
       <div className="relative w-full">
-        <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--theme-text-dim)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
         <input
           value={listSearchQuery}
           onChange={(event) => setListSearchQuery(event.target.value)}
           placeholder={strings.searchInLists}
-          className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 pl-10 text-sm text-slate-100 placeholder:text-slate-500 transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+          className="w-full rounded-xl border border-[var(--theme-border-input)] bg-[var(--theme-elevated)] px-3 py-2.5 pl-10 text-sm text-[var(--theme-text)] placeholder:text-[var(--theme-text-dim)] transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
         />
       </div>
 
       {entries.length > 0 && (
         <>
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
-            <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-3 py-3 text-center">
-              <p className="text-lg font-bold text-white">{stats.total}</p>
-              <p className="mt-0.5 text-[11px] text-slate-500">{strings.statsTotal}</p>
+            <div className="rounded-xl border border-[var(--theme-border-input)] bg-[var(--theme-surface)] px-3 py-3 text-center">
+              <p className="text-lg font-bold text-[var(--theme-text)]">{stats.total}</p>
+              <p className="mt-0.5 text-[11px] text-[var(--theme-text-dim)]">{strings.statsTotal}</p>
             </div>
             {LISTS.map((list) => (
-              <div key={list} className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-3 text-center">
-                <p className="text-lg font-bold text-white">{entriesByList[list].length}</p>
-                <p className="mt-0.5 text-[11px] text-slate-500">{getListLabel(list, strings)}</p>
+              <div key={list} className="rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] px-3 py-3 text-center">
+                <p className="text-lg font-bold text-[var(--theme-text)]">{entriesByList[list].length}</p>
+                <p className="mt-0.5 text-[11px] text-[var(--theme-text-dim)]">{getListLabel(list, strings)}</p>
               </div>
             ))}
           </div>
 
-          <div className="flex items-center gap-3 text-xs text-slate-500">
-            <span>{strings.statsTotal}: <strong className="text-slate-300">{stats.total}</strong></span>
+          <div className="flex items-center gap-3 text-xs text-[var(--theme-text-dim)]">
+            <span>{strings.statsTotal}: <strong className="text-[var(--theme-text-secondary)]">{stats.total}</strong></span>
             <span className="text-white/[0.06]">|</span>
-            <span>{strings.statsAvgRating}: <strong className="text-slate-300">{stats.avgRating}</strong></span>
+            <span>{strings.statsAvgRating}: <strong className="text-[var(--theme-text-secondary)]">{stats.avgRating}</strong></span>
             <span className="text-white/[0.06]">|</span>
-            <span>{strings.statsTopGenre}: <strong className="text-slate-300">{stats.topGenre}</strong></span>
+            <span>{strings.statsTopGenre}: <strong className="text-[var(--theme-text-secondary)]">{stats.topGenre}</strong></span>
           </div>
         </>
       )}
@@ -169,20 +169,20 @@ export default function MyListsView() {
         {listsToShow.map((list) => (
           <div
             key={list}
-            className={`overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] ${LIST_ACCENTS[list]}`}
+            className={`overflow-hidden rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] ${LIST_ACCENTS[list]}`}
           >
-            <div className="border-b border-white/[0.06] px-5 py-3">
+            <div className="border-b border-[var(--theme-border)] px-5 py-3">
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-slate-100">
+                <h3 className="text-sm font-semibold text-[var(--theme-text)]">
                   {getListLabel(list, strings)}
                 </h3>
-                <span className="text-xs text-slate-500">({entriesByList[list].length})</span>
+                <span className="text-xs text-[var(--theme-text-dim)]">({entriesByList[list].length})</span>
               </div>
             </div>
 
             {filteredEntriesByList[list].length === 0 ? (
               <div className="px-5 py-10 text-center">
-                <p className="text-sm text-slate-500">{listSearchQuery ? strings.noResults : strings.listEmpty}</p>
+                <p className="text-sm text-[var(--theme-text-dim)]">{listSearchQuery ? strings.noResults : strings.listEmpty}</p>
               </div>
             ) : (
               <div className="divide-y divide-white/[0.04]">
@@ -192,7 +192,7 @@ export default function MyListsView() {
                     onClick={() => {
                       navigate(`/detail/${entry.imdbId}`, { state: { item: entry } });
                     }}
-                    className="flex w-full items-center gap-3 px-5 py-3 text-left transition hover:bg-white/[0.02]"
+                    className="flex w-full items-center gap-3 px-5 py-3 text-left transition hover:bg-[var(--theme-surface)]"
                   >
                     {entry.poster ? (
                       <img
@@ -201,12 +201,12 @@ export default function MyListsView() {
                         className="h-12 w-9 flex-shrink-0 rounded-lg object-cover"
                       />
                     ) : (
-                      <div className="h-12 w-9 flex-shrink-0 rounded-lg bg-white/5" />
+                      <div className="h-12 w-9 flex-shrink-0 rounded-lg bg-[var(--theme-hover)]" />
                     )}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline gap-2">
-                        <p className="truncate text-sm font-medium text-slate-100">{entry.name}</p>
-                        <span className="shrink-0 text-xs text-slate-500">{entry.year}</span>
+                        <p className="truncate text-sm font-medium text-[var(--theme-text)]">{entry.name}</p>
+                        <span className="shrink-0 text-xs text-[var(--theme-text-dim)]">{entry.year}</span>
                       </div>
                       <div className="mt-0.5 flex items-center gap-2">
                         {entry.rating > 0 && (
@@ -218,11 +218,11 @@ export default function MyListsView() {
                           </span>
                         )}
                         {entry.addedAt && (
-                          <span className="text-[11px] text-slate-600">{new Date(entry.addedAt).toLocaleDateString()}</span>
+                          <span className="text-[11px] text-[var(--theme-text-dim)]">{new Date(entry.addedAt).toLocaleDateString()}</span>
                         )}
                       </div>
                     </div>
-                    <svg className="h-4 w-4 flex-shrink-0 text-slate-600 transition-colors group-hover:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <svg className="h-4 w-4 flex-shrink-0 text-[var(--theme-text-dim)] transition-colors group-hover:text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                     </svg>
                   </button>

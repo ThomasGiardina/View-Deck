@@ -1,10 +1,10 @@
 export default function MovieCard({ item, onSelect, actionLabel, onAction, actionDisabled, strings }) {
   return (
-    <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.03] transition-all duration-300 hover:border-white/10 hover:bg-white/[0.06] hover:shadow-xl hover:shadow-black/20">
+    <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-elevated)] transition-all duration-300 hover:border-white/10 hover:bg-white/[0.06] hover:shadow-xl hover:shadow-black/20">
       <button
         type="button"
         onClick={() => onSelect(item)}
-        className="relative aspect-[2/3] w-full overflow-hidden bg-white/[0.02]"
+        className="relative aspect-[2/3] w-full overflow-hidden bg-[var(--theme-surface)]"
       >
         {item.poster ? (
           <img
@@ -14,7 +14,7 @@ export default function MovieCard({ item, onSelect, actionLabel, onAction, actio
             loading="lazy"
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-sm text-slate-500">
+          <div className="flex h-full items-center justify-center text-sm text-[var(--theme-text-dim)]">
             {strings?.noPoster}
           </div>
         )}
@@ -22,14 +22,14 @@ export default function MovieCard({ item, onSelect, actionLabel, onAction, actio
       </button>
       <div className="flex flex-1 flex-col gap-3 p-4">
         <div className="space-y-1">
-          <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-slate-100">
+          <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-[var(--theme-text)]">
             {item.name}
           </h3>
-          <p className="text-xs text-slate-500">{item.year ?? ""}</p>
+          <p className="text-xs text-[var(--theme-text-dim)]">{item.year ?? ""}</p>
         </div>
         <div className="mt-auto flex flex-wrap gap-1.5 text-[11px]">
           {(item.genres || []).slice(0, 2).map((genre) => (
-            <span key={genre} className="rounded-full bg-white/5 px-2.5 py-1 font-medium text-slate-400">
+            <span key={genre} className="rounded-full bg-[var(--theme-hover)] px-2.5 py-1 font-medium text-[var(--theme-text-muted)]">
               {strings?.genreTranslations?.[genre] || genre}
             </span>
           ))}
@@ -41,7 +41,7 @@ export default function MovieCard({ item, onSelect, actionLabel, onAction, actio
             disabled={actionDisabled}
             className={`rounded-xl px-3 py-2.5 text-xs font-semibold transition-all duration-200 ${
               actionDisabled
-                ? "cursor-not-allowed bg-white/5 text-slate-600"
+                ? "cursor-not-allowed bg-[var(--theme-hover)] text-[var(--theme-text-dim)]"
                 : "bg-indigo-600/90 text-white hover:bg-indigo-500 hover:shadow-lg hover:shadow-indigo-500/20"
             }`}
           >

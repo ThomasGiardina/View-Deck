@@ -2,6 +2,49 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --theme-bg: #0a0a0f;
+  --theme-surface: rgba(255, 255, 255, 0.02);
+  --theme-elevated: rgba(255, 255, 255, 0.04);
+  --theme-hover: rgba(255, 255, 255, 0.06);
+  --theme-active: rgba(255, 255, 255, 0.10);
+  --theme-dropdown: #0f172a;
+  --theme-header: rgba(10, 10, 15, 0.8);
+  --theme-text: #f1f5f9;
+  --theme-text-secondary: #cbd5e1;
+  --theme-text-muted: #94a3b8;
+  --theme-text-dim: #64748b;
+  --theme-border: rgba(255, 255, 255, 0.06);
+  --theme-border-input: rgba(255, 255, 255, 0.08);
+  --theme-shadow: rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="light"] {
+  --theme-bg: #f8fafc;
+  --theme-surface: rgba(0, 0, 0, 0.02);
+  --theme-elevated: rgba(0, 0, 0, 0.03);
+  --theme-hover: rgba(0, 0, 0, 0.05);
+  --theme-active: rgba(0, 0, 0, 0.08);
+  --theme-dropdown: #ffffff;
+  --theme-header: rgba(248, 250, 252, 0.9);
+  --theme-text: #0f172a;
+  --theme-text-secondary: #334155;
+  --theme-text-muted: #475569;
+  --theme-text-dim: #64748b;
+  --theme-border: rgba(0, 0, 0, 0.08);
+  --theme-border-input: rgba(0, 0, 0, 0.10);
+  --theme-shadow: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] select option {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0);
+}
+
 @layer base {
   * {
     scrollbar-color: rgba(148, 163, 184, 0.3) transparent;

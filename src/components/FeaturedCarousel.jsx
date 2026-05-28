@@ -21,10 +21,10 @@ export default function FeaturedCarousel({ items, onSelect, strings }) {
   return (
     <section className="space-y-5">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-white">{strings.recommendations}</h2>
+        <h2 className="text-xl font-semibold text-[var(--theme-text)]">{strings.recommendations}</h2>
       </div>
 
-      <div className="relative overflow-hidden rounded-3xl border border-white/[0.06] bg-white/[0.02] md:h-[420px]">
+      <div className="relative overflow-hidden rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-surface)] md:h-[420px]">
         <div className="flex h-full flex-col md:flex-row">
           <div className="relative flex-1 overflow-hidden">
             {featured.background ? (
@@ -40,8 +40,8 @@ export default function FeaturedCarousel({ items, onSelect, strings }) {
                 className="h-full w-full object-cover"
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center bg-white/5">
-                <span className="text-slate-500">{strings.noImage}</span>
+              <div className="flex h-full w-full items-center justify-center bg-[var(--theme-hover)]">
+                <span className="text-[var(--theme-text-dim)]">{strings.noImage}</span>
               </div>
             )}
             <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
@@ -55,18 +55,18 @@ export default function FeaturedCarousel({ items, onSelect, strings }) {
                   />
                 )}
                 <div>
-                  <h3 className="text-2xl font-bold text-white md:text-3xl">{featured.name}</h3>
-                  <p className="mt-1 text-sm text-slate-300">{featured.year}</p>
+                  <h3 className="text-2xl font-bold text-[var(--theme-text)] md:text-3xl">{featured.name}</h3>
+                  <p className="mt-1 text-sm text-[var(--theme-text-secondary)]">{featured.year}</p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {(featured.genres || []).slice(0, 3).map((genre) => (
-                      <span key={genre} className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-slate-300">
+                      <span key={genre} className="rounded-full bg-[var(--theme-active)] px-3 py-1 text-xs font-medium text-[var(--theme-text-secondary)]">
                         {strings?.genreTranslations?.[genre] || genre}
                       </span>
                     ))}
                   </div>
                   <button
                     onClick={() => onSelect(featured)}
-                    className="mt-3 flex items-center gap-2 rounded-xl bg-white/10 px-5 py-2.5 text-sm font-medium text-white backdrop-blur-sm transition hover:bg-white/20"
+                    className="mt-3 flex items-center gap-2 rounded-xl bg-[var(--theme-active)] px-5 py-2.5 text-sm font-medium text-[var(--theme-text)] backdrop-blur-sm transition hover:bg-white/20"
                   >
                     <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
@@ -78,14 +78,14 @@ export default function FeaturedCarousel({ items, onSelect, strings }) {
             </div>
           </div>
 
-          <div className="flex w-full flex-col justify-between gap-2 p-4 md:w-80 md:border-l md:border-white/[0.06]">
+          <div className="flex w-full flex-col justify-between gap-2 p-4 md:w-80 md:border-l md:border-[var(--theme-border)]">
             {visibleItems.map((item, index) => (
               <button
                 key={item.imdbId}
                 onClick={() => setCurrentIndex(index)}
                 className={`flex items-center gap-3 rounded-xl p-2 text-left transition-all ${
                   index === currentIndex
-                    ? "bg-white/10"
+                    ? "bg-[var(--theme-active)]"
                     : "hover:bg-white/[0.06]"
                 }`}
               >
@@ -96,11 +96,11 @@ export default function FeaturedCarousel({ items, onSelect, strings }) {
                     className="h-14 w-10 flex-shrink-0 rounded-lg object-cover"
                   />
                 ) : (
-                  <div className="h-14 w-10 flex-shrink-0 rounded-lg bg-white/5" />
+                  <div className="h-14 w-10 flex-shrink-0 rounded-lg bg-[var(--theme-hover)]" />
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-slate-200">{item.name}</p>
-                  <p className="text-xs text-slate-500">{item.year}</p>
+                  <p className="text-xs text-[var(--theme-text-dim)]">{item.year}</p>
                 </div>
                 {index === currentIndex && (
                   <div className="h-2 w-2 flex-shrink-0 rounded-full bg-indigo-500" />
