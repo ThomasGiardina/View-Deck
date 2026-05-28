@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { User, Settings, Database, Info, LogOut } from "lucide-react";
 import { useAuth } from "../services/AuthContext";
 import { useLanguage } from "../services/LanguageContext";
 import { useTheme } from "../services/ThemeContext";
@@ -10,10 +11,10 @@ import { loadEntries } from "../services/storage";
 import { removeEntry } from "../services/storage";
 
 const SECTIONS = [
-  { key: "cuenta", labelKey: "account" },
-  { key: "preferencias", labelKey: "preferences" },
-  { key: "datos", labelKey: "data" },
-  { key: "acerca", labelKey: "about" },
+  { key: "cuenta", labelKey: "account", Icon: User },
+  { key: "preferencias", labelKey: "preferences", Icon: Settings },
+  { key: "datos", labelKey: "data", Icon: Database },
+  { key: "acerca", labelKey: "about", Icon: Info },
 ];
 
 export default function SettingsView() {
@@ -136,20 +137,18 @@ export default function SettingsView() {
     navigate("/discover");
   };
 
-  const sectionButton = (key, label) => (
+  const sectionButton = (Section, label) => (
     <button
-      key={key}
-      onClick={() => setActiveSection(key)}
+      key={Section.key}
+      onClick={() => setActiveSection(Section.key)}
       className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium transition-all ${
-        activeSection === key
+        activeSection === Section.key
           ? "bg-indigo-500/10 text-indigo-400"
           : "text-[var(--theme-text-muted)] hover:bg-[var(--theme-elevated)] hover:text-[var(--theme-text)]"
       }`}
     >
-      {activeSection === key && (
-        <span className="h-1.5 w-1.5 rounded-full bg-indigo-400" />
-      )}
-      <span className={activeSection === key ? "" : "ml-[18px]"}>{label}</span>
+      <Section.Icon className="h-4 w-4" />
+      <span>{label}</span>
     </button>
   );
 
@@ -186,12 +185,13 @@ export default function SettingsView() {
 
       <div className="flex flex-col gap-6 md:flex-row">
         <aside className="flex shrink-0 flex-col gap-2 md:w-56">
-          {SECTIONS.map((s) => sectionButton(s.key, strings[s.labelKey]))}
+          {SECTIONS.map((s) => sectionButton(s, strings[s.labelKey]))}
           <div className="mt-auto border-t border-[var(--theme-border)] pt-3">
             <button
               onClick={handleLogout}
               className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium text-red-400 transition-all hover:bg-red-500/10"
             >
+              <LogOut className="h-4 w-4" />
               {strings.logoutFromSettings}
             </button>
           </div>
