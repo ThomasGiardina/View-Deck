@@ -291,11 +291,34 @@ export default function DetailView() {
             )}
           </div>
 
-          {(detailEpisodes?.totalSeasons > 0 || displayItem.totalSeasons > 0) && (
+          {detailEpisodes?.episodes?.length > 0 && (
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-[var(--theme-text-secondary)]">{strings.episodes}</h3>
               <div className="grid gap-2 sm:grid-cols-2">
-                {Object.entries(detailEpisodes?.episodesBySeason || displayItem.episodesBySeason)
+                {detailEpisodes.episodes.map((ep) => (
+                  <div key={`${ep.season}-${ep.number}`} className="flex gap-3 rounded-xl bg-[var(--theme-elevated)] p-3 items-center">
+                    {ep.thumbnail ? (
+                      <img src={ep.thumbnail} alt={ep.title} className="w-20 aspect-video rounded-lg object-cover flex-shrink-0" />
+                    ) : (
+                      <div className="w-20 aspect-video rounded-lg bg-[var(--theme-hover)] flex items-center justify-center text-xs text-[var(--theme-text-dim)] flex-shrink-0">
+                        {ep.number}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="text-[11px] text-[var(--theme-text-dim)]">{strings.episodeLabel} {ep.number}</p>
+                      <p className="text-sm font-medium text-[var(--theme-text)] truncate">{ep.title}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {(detailEpisodes?.totalSeasons > 0 && !detailEpisodes?.episodes) && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-[var(--theme-text-secondary)]">{strings.episodes}</h3>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {Object.entries(detailEpisodes.episodesBySeason)
                   .sort((a, b) => Number(a[0]) - Number(b[0]))
                   .map(([season, count]) => (
                     <div key={season} className="flex items-center justify-between rounded-xl bg-[var(--theme-elevated)] px-4 py-2.5">

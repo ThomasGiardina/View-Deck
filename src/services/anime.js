@@ -82,17 +82,35 @@ export async function fetchAnimeDetails(kitsuId) {
 }
 
 export async function fetchAnimeEpisodes(kitsuId) {
-  const url = `${KITSU_API}/anime/${kitsuId}/episodes?page[limit]=5000`;
-  const res = await fetch(url);
-  if (!res.ok) return { episodesBySeason: {}, totalSeasons: 0, totalEpisodes: 0 };
-  const json = await res.json();
+  let url = `${KITSU_API}/anime/${kitsuId}/episodes?page[limit]=20`;
+  const allRaw = [];
+
+  while (url) {
+    const res = await fetch(url);
+    if (!res.ok) return { episodes: [], episodesBySeason: {}, totalSeasons: 0, totalEpisodes: 0 };
+    const json = await res.json();
+    allRaw.push(...(json.data || []));
+    url = json.links?.next || null;
+  }
+
   const episodesBySeason = {};
-  (json.data || []).forEach((ep) => {
-    const season = String(ep.attributes.seasonNumber);
+  const episodes = [];
+  allRaw.forEach((ep) => {
+    const a = ep.attributes;
+    const season = String(a.seasonNumber);
     episodesBySeason[season] = (episodesBySeason[season] || 0) + 1;
+    episodes.push({
+      season: a.seasonNumber,
+      number: a.number,
+      title: a.canonicalTitle || "",
+      thumbnail: a.thumbnail?.original || "",
+      synopsis: a.synopsis || "",
+    });
   });
+
   const totalEpisodes = Object.values(episodesBySeason).reduce((a, b) => a + b, 0);
   return {
+    episodes,
     episodesBySeason,
     totalSeasons: Object.keys(episodesBySeason).length,
     totalEpisodes,
