@@ -46,6 +46,7 @@ export default function DiscoverView() {
   const [translatedDesc, setTranslatedDesc] = useState("");
   const [animeGenres, setAnimeGenres] = useState([]);
   const [animeGenreSlugs, setAnimeGenreSlugs] = useState({});
+  const [seasonItems, setSeasonItems] = useState([]);
 
   useEffect(() => {
     if (user) {
@@ -67,11 +68,18 @@ export default function DiscoverView() {
   useEffect(() => {
     setIsLoading(true);
     setError("");
-    const fetchFn = contentType === "movie" ? fetchTopMovies : contentType === "anime" ? fetchCurrentSeasonAnime : fetchTopSeries;
+    const fetchFn = contentType === "movie" ? fetchTopMovies : contentType === "anime" ? fetchTopAnime : fetchTopSeries;
     fetchFn({ skip: 0 })
       .then((data) => setTopItems(data.map(normalizeMovie)))
       .catch(() => setError(strings.errorRecommendations))
       .finally(() => setIsLoading(false));
+  }, [contentType]);
+
+  useEffect(() => {
+    if (contentType !== "anime") return;
+    fetchCurrentSeasonAnime({ skip: 0 })
+      .then((data) => setSeasonItems(data.map(normalizeMovie)))
+      .catch(() => {});
   }, [contentType]);
 
   useEffect(() => {
@@ -314,7 +322,7 @@ export default function DiscoverView() {
             <h2 className="text-xl font-semibold text-[var(--theme-text)]">{strings.latestReleases}</h2>
           </div>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {topItems.slice(0, 8).map((item) => (
+            {(contentType === "anime" ? seasonItems : topItems).slice(0, 8).map((item) => (
               <MovieCard key={item.imdbId} item={item} onSelect={handleOpenDetail} actionLabel={strings.details} onAction={handleOpenDetail} strings={strings} />
             ))}
           </div>
