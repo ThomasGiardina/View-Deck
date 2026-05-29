@@ -12,6 +12,7 @@ import { useAuth } from "../services/AuthContext";
 import { useLanguage } from "../services/LanguageContext";
 import { loadEntries, upsertEntry, removeEntry } from "../services/storage";
 import { translateGenre } from "../data/i18n";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const LISTS = ["watched", "watchlist", "inprogress", "favorites", "abandoned"];
 
@@ -290,6 +291,54 @@ export default function DetailView() {
               </div>
             )}
           </div>
+
+          {contentType === "anime" && displayItem.relationships?.prequel && displayItem.relationships?.sequel && (
+            <div className="flex items-center gap-3 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-2">
+              <button onClick={() => navigate(`/detail/${displayItem.relationships.prequel.id}`, { state: { type: "anime" } })}
+                className="flex items-center gap-2 text-left group flex-1 min-w-0">
+                <img src={displayItem.relationships.prequel.poster} alt="" className="w-9 h-13 rounded-lg object-cover flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[10px] text-[var(--theme-text-dim)]">{strings.previousSeason}</p>
+                  <p className="text-xs font-medium text-[var(--theme-text)] truncate group-hover:text-indigo-400 transition-colors">{displayItem.relationships.prequel.name}</p>
+                </div>
+                <ChevronLeft className="w-4 h-4 text-[var(--theme-text-dim)] flex-shrink-0" />
+              </button>
+              <p className="text-xs font-semibold text-[var(--theme-text-secondary)] text-center flex-shrink-0">{strings.currentSeason}</p>
+              <button onClick={() => navigate(`/detail/${displayItem.relationships.sequel.id}`, { state: { type: "anime" } })}
+                className="flex items-center gap-2 text-right group flex-1 min-w-0 justify-end">
+                <ChevronRight className="w-4 h-4 text-[var(--theme-text-dim)] flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[10px] text-[var(--theme-text-dim)]">{strings.nextSeason}</p>
+                  <p className="text-xs font-medium text-[var(--theme-text)] truncate group-hover:text-indigo-400 transition-colors">{displayItem.relationships.sequel.name}</p>
+                </div>
+                <img src={displayItem.relationships.sequel.poster} alt="" className="w-9 h-13 rounded-lg object-cover flex-shrink-0" />
+              </button>
+            </div>
+          )}
+
+          {contentType === "anime" && displayItem.relationships?.prequel && !displayItem.relationships?.sequel && (
+            <button onClick={() => navigate(`/detail/${displayItem.relationships.prequel.id}`, { state: { type: "anime" } })}
+              className="flex items-center gap-2 text-left group rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-2 w-fit">
+              <img src={displayItem.relationships.prequel.poster} alt="" className="w-9 h-13 rounded-lg object-cover flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-[10px] text-[var(--theme-text-dim)]">{strings.previousSeason}</p>
+                <p className="text-xs font-medium text-[var(--theme-text)] truncate group-hover:text-indigo-400 transition-colors">{displayItem.relationships.prequel.name}</p>
+              </div>
+              <ChevronLeft className="w-4 h-4 text-[var(--theme-text-dim)] flex-shrink-0" />
+            </button>
+          )}
+
+          {contentType === "anime" && !displayItem.relationships?.prequel && displayItem.relationships?.sequel && (
+            <button onClick={() => navigate(`/detail/${displayItem.relationships.sequel.id}`, { state: { type: "anime" } })}
+              className="flex items-center gap-2 text-right group rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-2 w-fit ml-auto">
+              <ChevronRight className="w-4 h-4 text-[var(--theme-text-dim)] flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-[10px] text-[var(--theme-text-dim)]">{strings.nextSeason}</p>
+                <p className="text-xs font-medium text-[var(--theme-text)] truncate group-hover:text-indigo-400 transition-colors">{displayItem.relationships.sequel.name}</p>
+              </div>
+              <img src={displayItem.relationships.sequel.poster} alt="" className="w-9 h-13 rounded-lg object-cover flex-shrink-0" />
+            </button>
+          )}
 
           {detailEpisodes?.episodes?.length > 0 && (
             <div className="space-y-3">

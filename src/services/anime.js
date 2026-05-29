@@ -72,13 +72,15 @@ export async function searchAnimeByYear(year) {
 }
 
 export async function fetchAnimeDetails(kitsuId) {
-  const url = `${KITSU_API}/anime/${kitsuId}?include=categories`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("Error al cargar detalle de anime");
-  const json = await res.json();
+  const [detailRes, relationships] = await Promise.all([
+    fetch(`${KITSU_API}/anime/${kitsuId}?include=categories`),
+    fetchAnimeRelationships(kitsuId),
+  ]);
+  if (!detailRes.ok) throw new Error("Error al cargar detalle de anime");
+  const json = await detailRes.json();
   const data = json.data;
   if (!data) return null;
-  return normalizeKitsuAnime(data, json.included);
+  return { ...normalizeKitsuAnime(data, json.included), relationships };
 }
 
 export async function fetchAnimeEpisodes(kitsuId) {
@@ -115,4 +117,53 @@ export async function fetchAnimeEpisodes(kitsuId) {
     totalSeasons: Object.keys(episodesBySeason).length,
     totalEpisodes,
   };
+}
+
+function animeBasic(inc) {
+  if (!inc || !inc.attributes) return null;
+  const a = inc.attributes;
+  return {
+    id: inc.id,
+    name: a.canonicalTitle || a.titles?.en || "",
+    poster: a.posterImage?.original || a.posterImage?.medium || "",
+    year: a.startDate ? a.startDate.slice(0, 4) : "",
+  };
+}
+
+export async function fetchAnimeRelationships(kitsuId) {
+  const [srcRes, dstRes] = await Promise.all([
+    fetch(`${KITSU_API}/media-relationships?filter[source_id]=${kitsuId}&include=destination`),
+    fetch(`${KITSU_API}/media-relationships?filter[destination_id]=${kitsuId}&include=source`),
+  ]);
+
+  let prequel = null;
+  let sequel = null;
+
+  if (srcRes.ok) {
+    const json = await srcRes.json();
+    for (const rel of json.data || []) {
+      const role = rel.attributes?.role;
+      if (role !== "sequel" && role !== "prequel") continue;
+      const dstId = rel.relationships?.destination?.data?.id;
+      const dst = dstId ? (json.included || []).find((i) => i.id === dstId && i.type === "anime") : null;
+      if (!dst) continue;
+      if (role === "sequel") prequel = animeBasic(dst);
+      if (role === "prequel") sequel = animeBasic(dst);
+    }
+  }
+
+  if (dstRes.ok) {
+    const json = await dstRes.json();
+    for (const rel of json.data || []) {
+      const role = rel.attributes?.role;
+      if (role !== "sequel" && role !== "prequel") continue;
+      const srcId = rel.relationships?.source?.data?.id;
+      const src = srcId ? (json.included || []).find((i) => i.id === srcId && i.type === "anime") : null;
+      if (!src) continue;
+      if (role === "sequel") sequel = animeBasic(src);
+      if (role === "prequel") prequel = animeBasic(src);
+    }
+  }
+
+  return { prequel, sequel };
 }
