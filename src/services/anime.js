@@ -147,8 +147,8 @@ export async function fetchAnimeRelationships(kitsuId) {
       const dstId = rel.relationships?.destination?.data?.id;
       const dst = dstId ? (json.included || []).find((i) => i.id === dstId && i.type === "anime") : null;
       if (!dst) continue;
-      if (role === "sequel") prequel = animeBasic(dst);
-      if (role === "prequel") sequel = animeBasic(dst);
+      if (role === "sequel") sequel = animeBasic(dst);
+      if (role === "prequel") prequel = animeBasic(dst);
     }
   }
 
@@ -160,8 +160,8 @@ export async function fetchAnimeRelationships(kitsuId) {
       const srcId = rel.relationships?.source?.data?.id;
       const src = srcId ? (json.included || []).find((i) => i.id === srcId && i.type === "anime") : null;
       if (!src) continue;
-      if (role === "sequel") sequel = animeBasic(src);
-      if (role === "prequel") prequel = animeBasic(src);
+      if (role === "sequel") prequel = animeBasic(src);
+      if (role === "prequel") sequel = animeBasic(src);
     }
   }
 
