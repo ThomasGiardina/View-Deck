@@ -13,6 +13,11 @@ import {
   searchSeries,
   searchSeriesByYear,
 } from "../services/cinemeta";
+import {
+  fetchTopAnime,
+  searchAnime,
+  searchAnimeByYear,
+} from "../services/anime";
 import { loadEntries } from "../services/storage";
 import { deriveSimilarGenres, normalizeMovie } from "../utils/movies";
 import { useAuth } from "../services/AuthContext";
@@ -50,13 +55,15 @@ export default function DiscoverView() {
   useEffect(() => {
     setIsLoading(true);
     setError("");
-    const fetchFn = contentType === "movie" ? fetchTopMovies : fetchTopSeries;
+    const fetchFn = contentType === "movie" ? fetchTopMovies : contentType === "anime" ? fetchTopAnime : fetchTopSeries;
     fetchFn({ skip: 0 })
       .then((data) => setTopItems(data.map(normalizeMovie)))
       .catch(() => setError(strings.errorRecommendations))
       .finally(() => setIsLoading(false));
 
-    const CATEGORIES = ["Action", "Comedy", "Drama", "Sci-Fi", "Horror", "Thriller", "Romance", "Animation"];
+    const CATEGORIES = contentType === "anime"
+      ? ["Action", "Adventure", "Comedy", "Drama", "Fantasy", "Romance", "Sci-Fi", "Thriller"]
+      : ["Action", "Comedy", "Drama", "Sci-Fi", "Horror", "Thriller", "Romance", "Animation", "Anime"];
     CATEGORIES.forEach((genre) => {
       fetchFn({ skip: 0, genre })
         .then((data) => {
@@ -83,7 +90,7 @@ export default function DiscoverView() {
       return;
     }
     setIsLoading(true);
-    const fetchFn = contentType === "movie" ? searchMoviesByYear : searchSeriesByYear;
+    const fetchFn = contentType === "movie" ? searchMoviesByYear : contentType === "anime" ? searchAnimeByYear : searchSeriesByYear;
     fetchFn(yearFilter)
       .then((data) => {
         setYearItems(data.map(normalizeMovie));
@@ -95,7 +102,7 @@ export default function DiscoverView() {
   useEffect(() => {
     if (!genreFilter) return;
     setIsLoading(true);
-    const fetchFn = contentType === "movie" ? fetchTopMovies : fetchTopSeries;
+    const fetchFn = contentType === "movie" ? fetchTopMovies : contentType === "anime" ? fetchTopAnime : fetchTopSeries;
     Promise.all([
       fetchFn({ skip: 0, genre: genreFilter }),
       fetchFn({ skip: 20, genre: genreFilter }),
@@ -119,7 +126,7 @@ export default function DiscoverView() {
     }
     const handler = setTimeout(() => {
       setError("");
-      const searchFn = contentType === "movie" ? searchMovies : searchSeries;
+      const searchFn = contentType === "movie" ? searchMovies : contentType === "anime" ? searchAnime : searchSeries;
       searchFn(searchQuery)
         .then((data) => setSearchResults(data.map(normalizeMovie)))
         .catch(() => setError(strings.errorSearch));
@@ -178,7 +185,7 @@ export default function DiscoverView() {
   }, []);
 
   const handleOpenDetail = (item) => {
-    navigate(`/detail/${item.imdbId}`, { state: { item } });
+    navigate(`/detail/${item.imdbId}`, { state: { item, type: contentType } });
   };
 
   return (
@@ -236,6 +243,7 @@ export default function DiscoverView() {
               >
                 <option value="movie" className="bg-[var(--theme-dropdown)]">{strings.typeMovies}</option>
                 <option value="series" className="bg-[var(--theme-dropdown)]">{strings.typeSeries}</option>
+                <option value="anime" className="bg-[var(--theme-dropdown)]">{strings.typeAnime}</option>
               </select>
             </label>
           </div>
@@ -465,7 +473,10 @@ export default function DiscoverView() {
 
       {!searchQuery && !genreFilter && !yearFilter && (
         <div className="space-y-10">
-          {["Action", "Comedy", "Drama", "Sci-Fi", "Horror", "Thriller", "Romance", "Animation"].map((category) => (
+          {(contentType === "anime"
+            ? ["Action", "Adventure", "Comedy", "Drama", "Fantasy", "Romance", "Sci-Fi", "Thriller"]
+            : ["Action", "Comedy", "Drama", "Sci-Fi", "Horror", "Thriller", "Romance", "Animation", "Anime"]
+          ).map((category) => (
             <GenreCarousel
               key={category}
               title={translateGenre(category, strings)}

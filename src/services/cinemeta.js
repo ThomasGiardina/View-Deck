@@ -44,3 +44,5 @@ export async function fetchTopSeries(opts) { return fetchCatalog("series", opts)
 export async function searchSeries(query) { return searchCatalog("series", query); }
 export async function searchSeriesByYear(year) { return searchByYear("series", year); }
 export async function fetchSeriesDetails(imdbId) { return fetchMetaDetails("series", imdbId); }
+
+

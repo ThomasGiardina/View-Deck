@@ -4,6 +4,7 @@ import {
   fetchMovieDetails,
   fetchSeriesDetails,
 } from "../services/cinemeta";
+import { fetchAnimeDetails, fetchAnimeEpisodes } from "../services/anime";
 import { translate } from "../services/translate";
 import { fetchSeriesEpisodes } from "../services/tvmaze";
 import { normalizeMovie } from "../utils/movies";
@@ -58,7 +59,7 @@ export default function DetailView() {
   const [error, setError] = useState("");
   const [entry, setEntry] = useState(null);
 
-  const contentType = itemFromState?.type || "movie";
+  const contentType = location.state?.type || itemFromState?.type || "movie";
 
   useEffect(() => {
     if (!imdbId) return;
@@ -70,13 +71,13 @@ export default function DetailView() {
       setSaveSuccess(false);
       setTranslatedDesc("");
 
-      const fetchFn = contentType === "movie" ? fetchMovieDetails : fetchSeriesDetails;
+      const fetchFn = contentType === "movie" ? fetchMovieDetails : contentType === "anime" ? fetchAnimeDetails : fetchSeriesDetails;
 
       try {
         const details = await fetchFn(imdbId);
         if (cancelled) return;
         if (details) {
-          const full = normalizeMovie(details);
+          const full = contentType === "anime" ? details : normalizeMovie(details);
           setDetailItem(itemFromState || full);
           setDetailFull(full);
           translate(full.description, language).then((t) => {
@@ -95,6 +96,11 @@ export default function DetailView() {
         try {
           const name = (itemFromState || {}).name;
           const episodes = await fetchSeriesEpisodes(imdbId, name);
+          if (!cancelled && episodes) setDetailEpisodes(episodes);
+        } catch {}
+      } else if (contentType === "anime") {
+        try {
+          const episodes = await fetchAnimeEpisodes(imdbId);
           if (!cancelled && episodes) setDetailEpisodes(episodes);
         } catch {}
       }
@@ -403,7 +409,7 @@ export default function DetailView() {
                   />
                 </label>
 
-                {contentType === "series" && (detailEpisodes?.totalSeasons > 0 || displayItem.totalSeasons > 0) && (
+                {(contentType === "series" || contentType === "anime") && (detailEpisodes?.totalSeasons > 0 || displayItem.totalSeasons > 0) && (
                   <>
                     <label className="flex flex-col gap-2">
                       <span className="text-xs font-medium uppercase tracking-wider text-[var(--theme-text-dim)]">{strings.currentSeason}</span>
