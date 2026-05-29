@@ -11,6 +11,24 @@ const CATEGORY_SLUGS = {
   Thriller: "thriller",
 };
 
+let cachedGenres = null;
+
+export async function fetchAnimeGenres({ limit = 20 } = {}) {
+  if (cachedGenres) return cachedGenres;
+  const res = await fetch(`${KITSU_API}/categories?sort=-totalMediaCount&page[limit]=${limit}`);
+  if (!res.ok) throw new Error("Error al cargar géneros");
+  const json = await res.json();
+  const genres = (json.data || [])
+    .filter((c) => !c.attributes.nsfw)
+    .map((c) => ({
+      title: c.attributes.title,
+      slug: c.attributes.slug,
+      totalMediaCount: c.attributes.totalMediaCount,
+    }));
+  cachedGenres = genres;
+  return genres;
+}
+
 function normalizeKitsuAnime(data, included = []) {
   const attr = data.attributes;
   const categoryIds = (data.relationships?.categories?.data || []).map((c) => c.id);
@@ -42,13 +60,26 @@ function normalizeKitsuAnime(data, included = []) {
   };
 }
 
-export async function fetchTopAnime({ skip = 0, genre = "" } = {}) {
+export async function fetchTopAnime({ skip = 0, genre = "", slug = "" } = {}) {
   let url = `${KITSU_API}/anime?sort=-userCount&page[limit]=20&page[offset]=${skip}&include=categories`;
-  if (genre && CATEGORY_SLUGS[genre]) {
-    url += `&filter[categories]=${CATEGORY_SLUGS[genre]}`;
+  const categorySlug = slug || CATEGORY_SLUGS[genre];
+  if (categorySlug) {
+    url += `&filter[categories]=${categorySlug}`;
   }
   const res = await fetch(url);
   if (!res.ok) throw new Error("Error al cargar anime");
+  const json = await res.json();
+  return (json.data || []).map((d) => normalizeKitsuAnime(d, json.included));
+}
+
+export async function fetchCurrentSeasonAnime({ skip = 0 } = {}) {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const season = month <= 3 ? "winter" : month <= 6 ? "spring" : month <= 9 ? "summer" : "fall";
+  const url = `${KITSU_API}/anime?filter[seasonYear]=${year}&filter[season]=${season}&sort=-userCount&page[limit]=20&page[offset]=${skip}&include=categories`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Error al cargar anime de temporada");
   const json = await res.json();
   return (json.data || []).map((d) => normalizeKitsuAnime(d, json.included));
 }

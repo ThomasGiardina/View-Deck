@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import MovieCard from "./MovieCard";
 import GenreCarousel from "./GenreCarousel";
 import FeaturedCarousel from "./FeaturedCarousel";
-import { GENRES } from "../data/genres";
 import { translateGenre } from "../data/i18n";
 import {
   fetchTopMovies,
@@ -15,8 +14,10 @@ import {
 } from "../services/cinemeta";
 import {
   fetchTopAnime,
+  fetchCurrentSeasonAnime,
   searchAnime,
   searchAnimeByYear,
+  fetchAnimeGenres,
 } from "../services/anime";
 import { loadEntries } from "../services/storage";
 import { deriveSimilarGenres, normalizeMovie } from "../utils/movies";
@@ -43,6 +44,8 @@ export default function DiscoverView() {
   const [contentType, setContentType] = useState("movie");
   const [detailEpisodes, setDetailEpisodes] = useState(null);
   const [translatedDesc, setTranslatedDesc] = useState("");
+  const [animeGenres, setAnimeGenres] = useState([]);
+  const [animeGenreSlugs, setAnimeGenreSlugs] = useState({});
 
   useEffect(() => {
     if (user) {
@@ -53,19 +56,34 @@ export default function DiscoverView() {
   }, [user]);
 
   useEffect(() => {
+    fetchAnimeGenres({ limit: 20 }).then((genres) => {
+      setAnimeGenres(genres);
+      const map = {};
+      genres.forEach((g) => { map[g.title] = g.slug; });
+      setAnimeGenreSlugs(map);
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
     setIsLoading(true);
     setError("");
-    const fetchFn = contentType === "movie" ? fetchTopMovies : contentType === "anime" ? fetchTopAnime : fetchTopSeries;
+    const fetchFn = contentType === "movie" ? fetchTopMovies : contentType === "anime" ? fetchCurrentSeasonAnime : fetchTopSeries;
     fetchFn({ skip: 0 })
       .then((data) => setTopItems(data.map(normalizeMovie)))
       .catch(() => setError(strings.errorRecommendations))
       .finally(() => setIsLoading(false));
+  }, [contentType]);
 
-    const CATEGORIES = contentType === "anime"
-      ? ["Action", "Adventure", "Comedy", "Drama", "Fantasy", "Romance", "Sci-Fi", "Thriller"]
+  useEffect(() => {
+    if (contentType === "anime" && animeGenres.length === 0) return;
+
+    const fetchFn = contentType === "movie" ? fetchTopMovies : contentType === "anime" ? fetchTopAnime : fetchTopSeries;
+    const categories = contentType === "anime"
+      ? animeGenres.map((g) => g.title)
       : ["Action", "Comedy", "Drama", "Sci-Fi", "Horror", "Thriller", "Romance", "Animation", "Anime"];
-    CATEGORIES.forEach((genre) => {
-      fetchFn({ skip: 0, genre })
+    categories.forEach((genre) => {
+      const slug = animeGenreSlugs[genre];
+      fetchFn({ skip: 0, genre, slug })
         .then((data) => {
           setCategoryItems((prev) => ({
             ...prev,
@@ -74,7 +92,7 @@ export default function DiscoverView() {
         })
         .catch(() => {});
     });
-  }, [contentType]);
+  }, [contentType, animeGenres]);
 
   useEffect(() => {
     setGenrePage(1);
@@ -103,10 +121,11 @@ export default function DiscoverView() {
     if (!genreFilter) return;
     setIsLoading(true);
     const fetchFn = contentType === "movie" ? fetchTopMovies : contentType === "anime" ? fetchTopAnime : fetchTopSeries;
+    const slug = animeGenreSlugs[genreFilter];
     Promise.all([
-      fetchFn({ skip: 0, genre: genreFilter }),
-      fetchFn({ skip: 20, genre: genreFilter }),
-      fetchFn({ skip: 40, genre: genreFilter }),
+      fetchFn({ skip: 0, genre: genreFilter, slug }),
+      fetchFn({ skip: 20, genre: genreFilter, slug }),
+      fetchFn({ skip: 40, genre: genreFilter, slug }),
     ])
       .then(([page1, page2, page3]) => {
         const all = [...page1, ...page2, ...page3].map(normalizeMovie);
@@ -137,6 +156,13 @@ export default function DiscoverView() {
   const similarGenres = useMemo(() => deriveSimilarGenres(entries), [entries]);
 
   const genreItems = genreFilter ? (categoryItems[genreFilter] || []) : [];
+
+  const currentGenres = useMemo(() => {
+    if (contentType === "anime") {
+      return animeGenres.length > 0 ? animeGenres.map((g) => g.title) : [];
+    }
+    return ["Action", "Comedy", "Drama", "Sci-Fi", "Horror", "Thriller", "Romance", "Animation", "Anime"];
+  }, [contentType, animeGenres]);
 
   const shuffledItems = useMemo(() => {
     let base = topItems;
@@ -212,7 +238,7 @@ export default function DiscoverView() {
                 className="rounded-xl border border-[var(--theme-border-input)] bg-[var(--theme-elevated)] px-3 py-2.5 text-sm text-[var(--theme-text)] transition focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
               >
                 <option value="" className="bg-[var(--theme-dropdown)]">{strings.all}</option>
-                {GENRES.map((genre) => (
+                {currentGenres.map((genre) => (
                   <option key={genre} value={genre} className="bg-[var(--theme-dropdown)]">{translateGenre(genre, strings)}</option>
                 ))}
               </select>
@@ -473,10 +499,7 @@ export default function DiscoverView() {
 
       {!searchQuery && !genreFilter && !yearFilter && (
         <div className="space-y-10">
-          {(contentType === "anime"
-            ? ["Action", "Adventure", "Comedy", "Drama", "Fantasy", "Romance", "Sci-Fi", "Thriller"]
-            : ["Action", "Comedy", "Drama", "Sci-Fi", "Horror", "Thriller", "Romance", "Animation", "Anime"]
-          ).map((category) => (
+          {currentGenres.map((category) => (
             <GenreCarousel
               key={category}
               title={translateGenre(category, strings)}
