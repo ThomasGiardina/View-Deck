@@ -48,6 +48,31 @@ export function deriveSimilarGenres(entries) {
     .map(([genre]) => genre);
 }
 
+export function extractSeriesEpisodes(detail) {
+  const videos = detail?.videos || [];
+  const episodes = [];
+  const episodesBySeason = {};
+  videos.forEach((v) => {
+    if (!v.season || v.season === 0) return;
+    const seasonKey = String(v.season);
+    if (!episodesBySeason[seasonKey]) episodesBySeason[seasonKey] = 0;
+    episodesBySeason[seasonKey]++;
+    episodes.push({
+      season: v.season,
+      number: v.episode ?? v.number,
+      title: v.name || "",
+      thumbnail: v.thumbnail || "",
+      synopsis: v.overview || v.description || "",
+    });
+  });
+  return {
+    episodes,
+    episodesBySeason,
+    totalSeasons: Object.keys(episodesBySeason).length,
+    totalEpisodes: episodes.length,
+  };
+}
+
 export function sortEntries(entries, orderBy) {
   if (orderBy === "rating") {
     return [...entries].sort((a, b) => (b.rating || 0) - (a.rating || 0));

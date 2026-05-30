@@ -6,8 +6,7 @@ import {
 } from "../services/cinemeta";
 import { fetchAnimeDetails, fetchAnimeEpisodes } from "../services/anime";
 import { translate } from "../services/translate";
-import { fetchSeriesEpisodes } from "../services/tvmaze";
-import { normalizeMovie } from "../utils/movies";
+import { normalizeMovie, extractSeriesEpisodes } from "../utils/movies";
 import { useAuth } from "../services/AuthContext";
 import { useLanguage } from "../services/LanguageContext";
 import { loadEntries, upsertEntry, removeEntry } from "../services/storage";
@@ -56,6 +55,7 @@ export default function DetailView() {
   const [detailCurrentSeason, setDetailCurrentSeason] = useState("");
   const [detailCurrentEpisode, setDetailCurrentEpisode] = useState("");
   const [detailEpisodes, setDetailEpisodes] = useState(null);
+  const [episodeSeasonFilter, setEpisodeSeasonFilter] = useState("");
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState("");
   const [entry, setEntry] = useState(null);
@@ -84,6 +84,10 @@ export default function DetailView() {
           translate(full.description, language).then((t) => {
             if (!cancelled) setTranslatedDesc(t);
           });
+          if (contentType === "series") {
+            const episodes = extractSeriesEpisodes(full);
+            if (!cancelled && episodes) setDetailEpisodes(episodes);
+          }
         } else if (itemFromState) {
           setDetailItem(itemFromState);
         }
@@ -93,13 +97,7 @@ export default function DetailView() {
         if (!cancelled) setDetailLoading(false);
       }
 
-      if (contentType === "series") {
-        try {
-          const name = (itemFromState || {}).name;
-          const episodes = await fetchSeriesEpisodes(imdbId, name);
-          if (!cancelled && episodes) setDetailEpisodes(episodes);
-        } catch {}
-      } else if (contentType === "anime") {
+      if (contentType === "anime") {
         try {
           const episodes = await fetchAnimeEpisodes(imdbId);
           if (!cancelled && episodes) setDetailEpisodes(episodes);
@@ -342,23 +340,43 @@ export default function DetailView() {
 
           {detailEpisodes?.episodes?.length > 0 && (
             <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-[var(--theme-text-secondary)]">{strings.episodes}</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-[var(--theme-text-secondary)]">{strings.episodes}</h3>
+                {detailEpisodes.totalSeasons > 1 && (
+                  <select
+                    value={episodeSeasonFilter}
+                    onChange={(e) => setEpisodeSeasonFilter(e.target.value)}
+                    className="rounded-lg border border-[var(--theme-border-input)] bg-[var(--theme-elevated)] px-2.5 py-1.5 text-xs text-[var(--theme-text)] focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  >
+                    <option value="" className="bg-[var(--theme-dropdown)]">{strings.allSeasons ?? "All seasons"}</option>
+                    {Object.keys(detailEpisodes.episodesBySeason)
+                      .sort((a, b) => Number(a) - Number(b))
+                      .map((s) => (
+                        <option key={s} value={s} className="bg-[var(--theme-dropdown)]">
+                          {strings.seasonLabel} {s}
+                        </option>
+                      ))}
+                  </select>
+                )}
+              </div>
               <div className="grid gap-2 sm:grid-cols-2">
-                {detailEpisodes.episodes.map((ep) => (
-                  <div key={`${ep.season}-${ep.number}`} className="flex gap-3 rounded-xl bg-[var(--theme-elevated)] p-3 items-center">
-                    {ep.thumbnail ? (
-                      <img src={ep.thumbnail} alt={ep.title} className="w-20 aspect-video rounded-lg object-cover flex-shrink-0" />
-                    ) : (
-                      <div className="w-20 aspect-video rounded-lg bg-[var(--theme-hover)] flex items-center justify-center text-xs text-[var(--theme-text-dim)] flex-shrink-0">
-                        {ep.number}
+                {detailEpisodes.episodes
+                  .filter((ep) => !episodeSeasonFilter || String(ep.season) === episodeSeasonFilter)
+                  .map((ep) => (
+                    <div key={`${ep.season}-${ep.number}`} className="flex gap-3 rounded-xl bg-[var(--theme-elevated)] p-3 items-center">
+                      {ep.thumbnail ? (
+                        <img src={ep.thumbnail} alt={ep.title} className="w-20 aspect-video rounded-lg object-cover flex-shrink-0" />
+                      ) : (
+                        <div className="w-20 aspect-video rounded-lg bg-[var(--theme-hover)] flex items-center justify-center text-xs text-[var(--theme-text-dim)] flex-shrink-0">
+                          {ep.number}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-[11px] text-[var(--theme-text-dim)]">{strings.episodeLabel} {ep.number}</p>
+                        <p className="text-sm font-medium text-[var(--theme-text)] truncate">{ep.title}</p>
                       </div>
-                    )}
-                    <div className="min-w-0">
-                      <p className="text-[11px] text-[var(--theme-text-dim)]">{strings.episodeLabel} {ep.number}</p>
-                      <p className="text-sm font-medium text-[var(--theme-text)] truncate">{ep.title}</p>
                     </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
           )}
