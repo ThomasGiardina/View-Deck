@@ -1,5 +1,5 @@
 const STORAGE_KEY = "wd_translations";
-const API_URL = "https://translate.argosopentech.com/translate";
+const API_URL = "https://api.mymemory.translated.net/get";
 
 function getCache() {
   try {
@@ -18,31 +18,22 @@ function setCache(key, value) {
 }
 
 export async function translate(text, targetLang) {
-  if (!text || targetLang !== "es") return text;
+  if (!text || !targetLang || targetLang === "en") return text;
 
-  const cacheKey = `desc:${text}`;
+  const cacheKey = `${targetLang}:${text}`;
   const cache = getCache();
   if (cache[cacheKey]) return cache[cacheKey].value;
 
   try {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        q: text,
-        source: "en",
-        target: "es",
-        format: "text",
-      }),
-    });
-
+    const res = await fetch(`${API_URL}?q=${encodeURIComponent(text)}&langpair=en|${targetLang}`);
     if (!res.ok) return text;
 
     const data = await res.json();
-    const translated = data.translatedText || text;
+    const translated = data.responseData?.translatedText || text;
     setCache(cacheKey, translated);
     return translated;
-  } catch {
+  } catch (e) {
+    console.error("Translation error:", e);
     return text;
   }
 }

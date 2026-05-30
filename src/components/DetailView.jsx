@@ -56,6 +56,8 @@ export default function DetailView() {
   const [detailCurrentEpisode, setDetailCurrentEpisode] = useState("");
   const [detailEpisodes, setDetailEpisodes] = useState(null);
   const [episodeSeasonFilter, setEpisodeSeasonFilter] = useState("");
+  const [translatedMetadata, setTranslatedMetadata] = useState({});
+  const [translatedEpisodes, setTranslatedEpisodes] = useState({});
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState("");
   const [entry, setEntry] = useState(null);
@@ -81,9 +83,20 @@ export default function DetailView() {
           const full = contentType === "anime" ? details : normalizeMovie(details);
           setDetailItem(itemFromState || full);
           setDetailFull(full);
-          translate(full.description, language).then((t) => {
-            if (!cancelled) setTranslatedDesc(t);
-          });
+          Promise.all([
+            translate(full.description, language).then((t) => {
+              if (!cancelled) setTranslatedDesc(t);
+            }),
+            translate(full.name, language).then((t) => {
+              if (!cancelled) setTranslatedMetadata((prev) => ({ ...prev, name: t }));
+            }),
+            translate(full.country, language).then((t) => {
+              if (!cancelled) setTranslatedMetadata((prev) => ({ ...prev, country: t }));
+            }),
+            translate(full.runtime, language).then((t) => {
+              if (!cancelled) setTranslatedMetadata((prev) => ({ ...prev, runtime: t }));
+            }),
+          ]);
           if (contentType === "series") {
             const episodes = extractSeriesEpisodes(full);
             if (!cancelled && episodes) setDetailEpisodes(episodes);
@@ -134,6 +147,28 @@ export default function DetailView() {
       }
     });
   }, [user, imdbId]);
+
+  useEffect(() => {
+    if (!detailEpisodes?.episodes || language === "en") return;
+    let cancelled = false;
+    const translateAll = async () => {
+      const results = await Promise.all(
+        detailEpisodes.episodes.map(async (ep) => {
+          const [title, synopsis] = await Promise.all([
+            translate(ep.title, language),
+            ep.synopsis ? translate(ep.synopsis, language) : "",
+          ]);
+          return { key: `${ep.season}-${ep.number}`, title, synopsis };
+        })
+      );
+      if (cancelled) return;
+      const map = {};
+      results.forEach((r) => { map[r.key] = { title: r.title, synopsis: r.synopsis }; });
+      setTranslatedEpisodes(map);
+    };
+    translateAll();
+    return () => { cancelled = true; };
+  }, [detailEpisodes, language]);
 
   const displayItem = detailFull || detailItem;
 
@@ -242,7 +277,7 @@ export default function DetailView() {
 
         <div className="flex-1 space-y-6">
           <div>
-            <h1 className="text-3xl font-bold text-[var(--theme-text)]">{displayItem.name}</h1>
+            <h1 className="text-3xl font-bold text-[var(--theme-text)]">{translatedMetadata.name || displayItem.name}</h1>
             <p className="mt-2 text-sm text-[var(--theme-text-muted)]">{displayItem.year ?? ""}</p>
           </div>
 
@@ -272,7 +307,7 @@ export default function DetailView() {
             )}
             {displayItem.runtime && (
               <div>
-                <p className="text-sm font-semibold text-[var(--theme-text)]">{displayItem.runtime}</p>
+                <p className="text-sm font-semibold text-[var(--theme-text)]">{translatedMetadata.runtime || displayItem.runtime}</p>
                 <p className="text-xs text-[var(--theme-text-dim)]">{strings.runtime}</p>
               </div>
             )}
@@ -284,7 +319,7 @@ export default function DetailView() {
             )}
             {displayItem.country && (
               <div>
-                <p className="text-sm font-semibold text-[var(--theme-text)]">{displayItem.country}</p>
+                <p className="text-sm font-semibold text-[var(--theme-text)]">{translatedMetadata.country || displayItem.country}</p>
                 <p className="text-xs text-[var(--theme-text-dim)]">{strings.country}</p>
               </div>
             )}
@@ -348,7 +383,7 @@ export default function DetailView() {
                     onChange={(e) => setEpisodeSeasonFilter(e.target.value)}
                     className="rounded-lg border border-[var(--theme-border-input)] bg-[var(--theme-elevated)] px-2.5 py-1.5 text-xs text-[var(--theme-text)] focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                   >
-                    <option value="" className="bg-[var(--theme-dropdown)]">{strings.allSeasons ?? "All seasons"}</option>
+                    <option value="" className="bg-[var(--theme-dropdown)]">{strings.allSeasons}</option>
                     {Object.keys(detailEpisodes.episodesBySeason)
                       .sort((a, b) => Number(a) - Number(b))
                       .map((s) => (
@@ -373,7 +408,10 @@ export default function DetailView() {
                       )}
                       <div className="min-w-0">
                         <p className="text-[11px] text-[var(--theme-text-dim)]">{strings.episodeLabel} {ep.number}</p>
-                        <p className="text-sm font-medium text-[var(--theme-text)] truncate">{ep.title}</p>
+                        <p className="text-sm font-medium text-[var(--theme-text)] truncate">{translatedEpisodes[`${ep.season}-${ep.number}`]?.title || ep.title}</p>
+                        {(translatedEpisodes[`${ep.season}-${ep.number}`]?.synopsis || ep.synopsis) && (
+                          <p className="text-xs text-[var(--theme-text-dim)] mt-0.5 line-clamp-2">{translatedEpisodes[`${ep.season}-${ep.number}`]?.synopsis || ep.synopsis}</p>
+                        )}
                       </div>
                     </div>
                   ))}
