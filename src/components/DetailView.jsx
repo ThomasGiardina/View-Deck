@@ -29,8 +29,8 @@ function getListLabel(list, strings) {
 function formatStatus(status, strings) {
   if (!status) return "";
   const lower = status.toLowerCase();
-  if (lower === "ended" || lower === "canceled") return strings.statusEnded;
-  if (lower === "returning series" || lower === "running" || lower === "in production") return strings.statusReturning;
+  if (lower === "ended" || lower === "canceled" || lower === "finished") return strings.statusEnded;
+  if (lower === "returning series" || lower === "running" || lower === "in production" || lower === "continuing") return strings.statusReturning;
   return status;
 }
 
