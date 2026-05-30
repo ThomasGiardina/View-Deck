@@ -1,6 +1,6 @@
 export const STRINGS = {
   es: {
-    appTitle: "Watch Deck",
+    appTitle: "ViewDeck",
     tagline: "Guarda lo que viste, lo que querés ver y califica.",
     searchPlaceholder: "Buscar por título...",
     filters: "Filtros",
@@ -90,7 +90,7 @@ export const STRINGS = {
     addFormTitle: "Agregar a Mi Lista",
     viewDetails: "Ver detalles",
     footerTagline: "Guardá, calificá y organizá películas y series en un solo lugar. Tu biblioteca personal, siempre a mano.",
-    copyright: "© {year} Watch Deck",
+    copyright: "© {year} ViewDeck",
     genreTranslations: {
       Action: "Acción",
       Adventure: "Aventura",
@@ -174,7 +174,7 @@ export const STRINGS = {
     sourceCode: "Código fuente",
   },
   en: {
-    appTitle: "Watch Deck",
+    appTitle: "ViewDeck",
     tagline: "Track what you watched, want to watch, and rate.",
     searchPlaceholder: "Search by title...",
     filters: "Filters",
@@ -264,7 +264,7 @@ export const STRINGS = {
     addFormTitle: "Add to My List",
     viewDetails: "View details",
     footerTagline: "Save, rate and organize movies and series in one place. Your personal library, always at hand.",
-    copyright: "© {year} Watch Deck",
+    copyright: "© {year} ViewDeck",
     genreTranslations: {
       Action: "Action",
       Adventure: "Adventure",

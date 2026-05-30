@@ -2,12 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../services/AuthContext";
 import { useLanguage } from "../services/LanguageContext";
+import { useTheme } from "../services/ThemeContext";
 import { getProfile } from "../services/profile";
 import { signOut } from "../services/auth";
 
 export default function Header() {
   const { user } = useAuth();
   const { strings } = useLanguage();
+  const { isDark } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const [profile, setProfile] = useState(null);
@@ -49,7 +51,7 @@ export default function Header() {
           className="flex cursor-pointer items-center gap-3"
           onClick={() => navigate("/discover")}
         >
-          <img src="/favicon.png?v=3" alt={strings.appTitle} className="h-9 w-9 rounded-lg" />
+          <img src={isDark ? "/favicon.png?v=4" : "/favicon-light.png?v=4"} alt={strings.appTitle} className="h-9 w-9 rounded-lg" />
           <span className="text-xl font-bold tracking-tight text-[var(--theme-text)]">
             {strings.appTitle}
           </span>

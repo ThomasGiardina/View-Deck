@@ -1,8 +1,12 @@
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../services/AuthContext";
 import { useLanguage } from "../services/LanguageContext";
+import { useTheme } from "../services/ThemeContext";
 
 export default function Footer() {
+  const { user } = useAuth();
   const { strings } = useLanguage();
+  const { isDark } = useTheme();
   const navigate = useNavigate();
 
   return (
@@ -23,7 +27,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-16 flex items-center gap-6">
-          <img src="/favicon.png?v=3" alt={strings.appTitle} className="h-20 w-20 rounded-2xl" />
+          <img src={isDark ? "/favicon.png?v=4" : "/favicon-light.png?v=4"} alt={strings.appTitle} className="h-20 w-20 rounded-2xl" />
           <h2 className="bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-6xl font-bold tracking-tight text-transparent md:text-7xl lg:text-8xl">
             {strings.appTitle}
           </h2>
@@ -40,12 +44,22 @@ export default function Footer() {
             >
               {strings.tabDiscover}
             </button>
-            <button
-              onClick={() => navigate("/mylists")}
-              className="text-xs text-[var(--theme-text-dim)] transition hover:text-[var(--theme-text-muted)]"
-            >
-              {strings.tabMyLists}
-            </button>
+            {user && (
+              <button
+                onClick={() => navigate("/mylists")}
+                className="text-xs text-[var(--theme-text-dim)] transition hover:text-[var(--theme-text-muted)]"
+              >
+                {strings.tabMyLists}
+              </button>
+            )}
+            {user && (
+              <button
+                onClick={() => navigate("/settings")}
+                className="text-xs text-[var(--theme-text-dim)] transition hover:text-[var(--theme-text-muted)]"
+              >
+                {strings.settings}
+              </button>
+            )}
           </div>
         </div>
       </div>
