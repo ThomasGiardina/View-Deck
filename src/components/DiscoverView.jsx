@@ -173,7 +173,9 @@ export default function DiscoverView() {
   const shuffledItems = useMemo(() => {
     let base = topItems;
     if (genreFilter && yearFilter) {
-      base = genreItems.filter((item) => item.year === yearFilter);
+      base = yearItems.filter((item) =>
+        (item.genres || []).includes(genreFilter)
+      );
     } else if (genreFilter) {
       base = genreItems;
     } else if (yearFilter) {
@@ -282,7 +284,7 @@ export default function DiscoverView() {
         </div>
       </div>
 
-      {!searchQuery && (
+      {!searchQuery && !(genreFilter && yearFilter) && (
         <FeaturedCarousel items={recommendedItems} onSelect={handleOpenDetail} strings={strings} />
       )}
 
@@ -314,7 +316,7 @@ export default function DiscoverView() {
         </section>
       )}
 
-      {!searchQuery && !yearFilter && (
+      {!searchQuery && !genreFilter && !yearFilter && (
         <section className="space-y-5">
           <div>
             <h2 className="text-xl font-semibold text-[var(--theme-text)]">{strings.latestReleases}</h2>
@@ -327,7 +329,7 @@ export default function DiscoverView() {
         </section>
       )}
 
-      {!searchQuery && genreFilter && (
+      {!searchQuery && genreFilter && !yearFilter && (
         <section className="space-y-5">
           <div>
             <h2 className="text-xl font-semibold text-[var(--theme-text)]">{translateGenre(genreFilter, strings)}</h2>
@@ -415,7 +417,7 @@ export default function DiscoverView() {
         </section>
       )}
 
-      {!searchQuery && yearFilter && (
+      {!searchQuery && yearFilter && !genreFilter && (
         <section className="space-y-5">
           <div>
             <h2 className="text-xl font-semibold text-[var(--theme-text)]">{yearFilter}</h2>
@@ -499,6 +501,19 @@ export default function DiscoverView() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
               </svg>
             </button>
+          </div>
+        </section>
+      )}
+
+      {!searchQuery && genreFilter && yearFilter && (
+        <section className="space-y-5">
+          <div>
+            <h2 className="text-xl font-semibold text-[var(--theme-text)]">{translateGenre(genreFilter, strings)} · {yearFilter}</h2>
+          </div>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {shuffledItems.slice(0, 20).map((item) => (
+              <MovieCard key={item.imdbId} item={item} onSelect={handleOpenDetail} actionLabel={strings.details} onAction={handleOpenDetail} strings={strings} />
+            ))}
           </div>
         </section>
       )}
