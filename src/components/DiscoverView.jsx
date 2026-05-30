@@ -118,9 +118,7 @@ export default function DiscoverView() {
     setIsLoading(true);
     const fetchFn = contentType === "movie" ? searchMoviesByYear : contentType === "anime" ? searchAnimeByYear : searchSeriesByYear;
     fetchFn(yearFilter)
-      .then((data) => {
-        setYearItems(data.map(normalizeMovie));
-      })
+      .then((data) => setYearItems(data.map(normalizeMovie)))
       .catch(() => {})
       .finally(() => setIsLoading(false));
   }, [yearFilter, contentType]);

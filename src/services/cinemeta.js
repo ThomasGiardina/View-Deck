@@ -20,7 +20,7 @@ async function searchCatalog(type, query) {
 
 async function searchByYear(type, year) {
   if (!year) return [];
-  const url = `${BASE_URL}/catalog/${type}/top/year=${encodeURIComponent(year)}.json`;
+  const url = `${BASE_URL}/catalog/${type}/year/genre=${encodeURIComponent(year)}.json`;
   const response = await fetch(url);
   if (!response.ok) return [];
   const data = await response.json();
